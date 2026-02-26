@@ -13,8 +13,7 @@ const http = require('http');
 const cookieParser = require('cookie-parser');
 const { WebSocketServer } = require('ws');
 const rateLimit = require('express-rate-limit');
-const si = require('systeminformation');
-const { execFileSync } = require('child_process');
+const { getSystemMetrics, getUsageData, getAgentInfo, getCronJobs } = require('./lib/data');
 
 // Load core modules
 const hooks = require('./lib/hooks');
@@ -25,7 +24,6 @@ const { validateManifest } = require('./lib/validator');
 
 // Paths
 const ROOT_DIR = path.resolve(__dirname, '..');
-const WORKSPACE = path.resolve(ROOT_DIR, '..');
 const CONFIG_PATH = path.join(ROOT_DIR, 'config.json');
 
 // ── TEST_MODE warning ──
@@ -104,11 +102,6 @@ const authLimiter = rateLimit({
   max: 10,
   skipSuccessfulRequests: true
 });
-const statusLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  max: 10
-});
-
 app.use('/api/', apiLimiter);
 
 // Static files (core/public/)
@@ -244,7 +237,7 @@ if (fs.existsSync(pluginsDir)) {
   }
 }
 
-// ── API Routes (preserved from v1) ──
+// ── API Routes ──
 
 // Safe config (no secrets)
 app.get('/api/config', (req, res) => {
@@ -272,222 +265,6 @@ app.get('/api/auth', (req, res) => {
   const user = auth.getUserFromCookie(req);
   if (!user || !auth.isAllowed(user.id)) return res.status(401).json({ ok: false });
   return res.json({ ok: true, user });
-});
-
-// Claude usage data
-function getUsageData() {
-  try {
-    const data = fs.readFileSync(path.join(WORKSPACE, 'claude-usage.json'), 'utf8');
-    return JSON.parse(data);
-  } catch {
-    return null;
-  }
-}
-
-app.get('/api/usage', auth.requireAuth, (req, res) => {
-  const data = getUsageData();
-  if (!data) return res.status(404).json({ error: 'Usage data not available' });
-  res.json(data);
-});
-
-app.post('/api/usage', (req, res) => {
-  const user = auth.validateInitData(req.body?.initData);
-  if (!user || !auth.isAllowed(user.id)) return res.status(403).json({ error: 'Unauthorized' });
-  const data = getUsageData();
-  if (!data) return res.status(404).json({ error: 'Usage data not available' });
-  res.json(data);
-});
-
-// Refresh Claude usage
-app.post('/api/usage/refresh', statusLimiter, async (req, res) => {
-  let user = req.body?.initData ? auth.validateInitData(req.body.initData) : auth.getUserFromCookie(req);
-  if (!user || !auth.isAllowed(user.id)) return res.status(403).json({ error: 'Unauthorized' });
-
-  try {
-    const scriptPath = path.join(WORKSPACE, 'skills/claude-usage-monitor/scripts/claude-usage-poll.sh');
-    const { execFile } = require('child_process');
-    execFile('bash', [scriptPath], {
-      timeout: 15000,
-      env: { ...process.env, HOME: process.env.HOME || '/home/claw' }
-    }, (err) => {
-      if (err) return res.status(500).json({ error: 'Refresh failed' });
-      const data = getUsageData();
-      res.json(data || { error: 'No data after refresh' });
-    });
-  } catch {
-    res.status(500).json({ error: 'Refresh failed' });
-  }
-});
-
-// System metrics
-async function getSystemMetrics() {
-  const [cpu, mem, disk, time, osInfo, proc] = await Promise.all([
-    si.currentLoad(),
-    si.mem(),
-    si.fsSize(),
-    si.time(),
-    si.osInfo(),
-    si.processes()
-  ]);
-  const rootDisk = disk.find(d => d.mount === '/') || disk[0] || {};
-  return {
-    cpu: { load: Math.round(cpu.currentLoad * 10) / 10, cores: cpu.cpus?.length || 0 },
-    memory: {
-      total: mem.total,
-      used: mem.used,
-      free: mem.free,
-      available: mem.available,
-      pct: Math.round((mem.used / mem.total) * 1000) / 10
-    },
-    disk: {
-      total: rootDisk.size || 0,
-      used: rootDisk.used || 0,
-      free: (rootDisk.size || 0) - (rootDisk.used || 0),
-      pct: Math.round((rootDisk.use || 0) * 10) / 10,
-      mount: rootDisk.mount || '/'
-    },
-    uptime: time.uptime,
-    os: `${osInfo.distro} ${osInfo.release}`,
-    hostname: osInfo.hostname,
-    processes: { total: proc.all, running: proc.running, sleeping: proc.sleeping },
-    ts: Date.now()
-  };
-}
-
-app.get('/api/metrics', auth.requireAuth, async (req, res) => {
-  res.json(await getSystemMetrics());
-});
-
-app.post('/api/metrics', async (req, res) => {
-  const user = auth.validateInitData(req.body?.initData);
-  if (!user || !auth.isAllowed(user.id)) return res.status(403).json({ error: 'Unauthorized' });
-  res.json(await getSystemMetrics());
-});
-
-// OpenClaw status
-function getSystemStatus() {
-  try {
-    const raw = execFileSync('openclaw', ['status'], {
-      timeout: 5000,
-      encoding: 'utf8',
-      shell: false
-    }).trim();
-    return { _raw: raw };
-  } catch {
-    return null;
-  }
-}
-
-app.get('/api/status', auth.requireAuth, (req, res) => {
-  const data = getSystemStatus();
-  res.json(data || { _raw: 'Status unavailable' });
-});
-
-app.post('/api/status', (req, res) => {
-  const user = auth.validateInitData(req.body?.initData);
-  if (!user || !auth.isAllowed(user.id)) return res.status(403).json({ error: 'Unauthorized' });
-  const data = getSystemStatus();
-  res.json(data || { _raw: 'Status unavailable' });
-});
-
-// Agent info
-function getAgentInfo() {
-  try {
-    const cfgPath = path.join(WORKSPACE, '..', 'openclaw.json');
-    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
-    const agent = cfg.agents?.defaults || {};
-    const model = agent.model || {};
-    return {
-      primary: model.primary || 'unknown',
-      fallbacks: model.fallbacks || [],
-      subagent: agent.subagents?.model || null,
-      heartbeat: agent.heartbeat?.model || null,
-      heartbeatInterval: agent.heartbeat?.every || null,
-      context: '200k',
-      channel: cfg.channels?.telegram?.enabled ? 'Telegram' : 'unknown',
-      streamMode: cfg.channels?.telegram?.streamMode || 'off',
-      name: cfg.ui?.assistant?.name || 'Agent'
-    };
-  } catch {
-    return null;
-  }
-}
-
-app.get('/api/agent', auth.requireAuth, (req, res) => {
-  res.json(getAgentInfo() || {});
-});
-
-app.post('/api/agent', (req, res) => {
-  const user = auth.validateInitData(req.body?.initData);
-  if (!user || !auth.isAllowed(user.id)) return res.status(403).json({ error: 'Unauthorized' });
-  res.json(getAgentInfo() || {});
-});
-
-// Cron jobs
-function getCronJobs() {
-  try {
-    const cronPaths = [
-      path.join(WORKSPACE, '..', 'cron', 'jobs.json'),
-      path.join(WORKSPACE, '..', 'agents', 'main', 'cron-jobs.json')
-    ];
-    for (const p of cronPaths) {
-      if (fs.existsSync(p)) {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
-        const jobs = Array.isArray(data) ? data : (data.jobs || []);
-        return jobs.map(j => ({
-          id: j.id,
-          name: j.name || 'Unnamed',
-          enabled: j.enabled !== false,
-          schedule: j.schedule || null,
-          sessionTarget: j.sessionTarget || null,
-          model: j.payload?.model || null,
-          payloadKind: j.payload?.kind || null,
-          lastStatus: j.state?.lastStatus || null,
-          lastRunAt: j.state?.lastRunAtMs ? new Date(j.state.lastRunAtMs).toISOString() : null,
-          lastDurationMs: j.state?.lastDurationMs || null,
-          nextRunAt: j.state?.nextRunAtMs ? new Date(j.state.nextRunAtMs).toISOString() : null,
-          consecutiveErrors: j.state?.consecutiveErrors || 0,
-          lastError: j.state?.lastError || null
-        }));
-      }
-    }
-    return [];
-  } catch {
-    return [];
-  }
-}
-
-app.get('/api/crons', auth.requireAuth, (req, res) => {
-  res.json(getCronJobs());
-});
-
-app.post('/api/crons', (req, res) => {
-  const user = auth.validateInitData(req.body?.initData);
-  if (!user || !auth.isAllowed(user.id)) return res.status(403).json({ error: 'Unauthorized' });
-  res.json(getCronJobs());
-});
-
-// Cron actions
-app.post('/api/crons/action', statusLimiter, async (req, res) => {
-  let user = req.body?.initData ? auth.validateInitData(req.body.initData) : auth.getUserFromCookie(req);
-  if (!user || !auth.isAllowed(user.id)) return res.status(403).json({ error: 'Unauthorized' });
-
-  const { jobId, action } = req.body || {};
-  if (!jobId || !action) return res.status(400).json({ error: 'Missing jobId or action' });
-  if (!['run', 'enable', 'disable'].includes(action)) return res.status(400).json({ error: 'Invalid action' });
-
-  try {
-    if (action === 'run') {
-      execFileSync('openclaw', ['cron', 'run', jobId], { timeout: 10000, encoding: 'utf8', shell: false });
-    } else if (action === 'enable') {
-      execFileSync('openclaw', ['cron', 'update', jobId, '--enabled', 'true'], { timeout: 5000, encoding: 'utf8', shell: false });
-    } else if (action === 'disable') {
-      execFileSync('openclaw', ['cron', 'update', jobId, '--enabled', 'false'], { timeout: 5000, encoding: 'utf8', shell: false });
-    }
-    res.json({ ok: true, action, jobId });
-  } catch {
-    res.status(500).json({ error: 'Action failed' });
-  }
 });
 
 // Version info
