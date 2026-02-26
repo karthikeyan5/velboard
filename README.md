@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./screenshots/dashboard.png" alt="Clawboard Dashboard" width="700">
+  <img src="./screenshots/dashboard-mobile.png" alt="Clawboard Dashboard" width="300">
 </p>
 
 <h1 align="center">🦞 Clawboard</h1>
@@ -46,16 +46,8 @@ Open a tab. See everything. Done.
 <td><strong>Dashboard</strong></td>
 </tr>
 <tr>
-<td><img src="./screenshots/landing.png" alt="Landing" width="400"></td>
-<td><img src="./screenshots/dashboard.png" alt="Dashboard" width="400"></td>
-</tr>
-<tr>
-<td><strong>Landing (Mobile)</strong></td>
-<td><strong>Dashboard (Mobile)</strong></td>
-</tr>
-<tr>
-<td><img src="./screenshots/landing-mobile.png" alt="Landing Mobile" width="200"></td>
-<td><img src="./screenshots/dashboard-mobile.png" alt="Dashboard Mobile" width="200"></td>
+<td><img src="./screenshots/landing-mobile.png" alt="Landing" width="250"></td>
+<td><img src="./screenshots/dashboard-mobile.png" alt="Dashboard" width="250"></td>
 </tr>
 </table>
 

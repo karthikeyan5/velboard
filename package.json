@@ -4,7 +4,8 @@
   "description": "Telegram-authenticated dashboard for OpenClaw agents — live system metrics, usage stats, and personality landing page.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "screenshots": "bash scripts/screenshots.sh"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

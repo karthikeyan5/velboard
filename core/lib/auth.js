@@ -11,6 +11,11 @@ const crypto = require('crypto');
 let BOT_TOKEN = null;
 let ALLOWED_USERS = new Set();
 
+// TEST_MODE: bypass auth for development/screenshot automation
+if (process.env.TEST_MODE === 'true') {
+  console.warn('[Security] TEST_MODE enabled — auth bypassed. Do NOT use in production.');
+}
+
 /**
  * Initialize auth module with bot token and allowed user IDs
  * @param {string} token - Telegram bot token
@@ -117,13 +122,17 @@ function isAllowed(userId) {
 }
 
 /**
- * Express middleware — require auth (Mini App initData OR signed cookie)
- * Attaches user to req.user if authenticated
+ * Check authentication — returns user object or null
+ * In TEST_MODE, returns a mock user without validation
  * @param {object} req - Express request
- * @param {object} res - Express response
- * @param {function} next - Next middleware
+ * @returns {object|null} User object if authenticated
  */
-function requireAuth(req, res, next) {
+function check(req) {
+  // TEST_MODE bypass
+  if (process.env.TEST_MODE === 'true') {
+    return { id: 0, first_name: 'Test', username: 'test' };
+  }
+
   let user = null;
 
   // Try initData first (Mini App)
@@ -137,17 +146,34 @@ function requireAuth(req, res, next) {
   }
 
   // Check if user is valid and allowed
-  if (!user || !isAllowed(user.id)) {
+  if (user && isAllowed(user.id)) {
+    return user;
+  }
+
+  return null;
+}
+
+/**
+ * Express middleware — require auth (Mini App initData OR signed cookie)
+ * Attaches user to req.user if authenticated
+ * @param {object} req - Express request
+ * @param {object} res - Express response
+ * @param {function} next - Next middleware
+ */
+function requireAuth(req, res, next) {
+  const user = check(req);
+
+  if (!user) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
-  // Attach user to request
   req.user = user;
   next();
 }
 
 module.exports = {
   init,
+  check,
   validateInitData,
   validateTelegramLogin,
   getUserFromCookie,
