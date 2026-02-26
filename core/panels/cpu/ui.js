@@ -1,33 +1,23 @@
-/**
- * CPU Panel UI — Vanilla JS
- * Displays: CPU load %, core count, animated progress bar
- */
+import { html, useState, useEffect } from '/core/vendor/preact-htm.js';
 
-(function() {
-  const barColor = (pct) => pct < 50 ? 'var(--green)' : pct < 80 ? 'var(--yellow)' : 'var(--red)';
+const barColor = (pct) => pct < 50 ? 'var(--green)' : pct < 80 ? 'var(--yellow)' : 'var(--red)';
 
-  window.DashboardPanels = window.DashboardPanels || {};
-  window.DashboardPanels['cpu'] = {
-    render(el, data) {
-      // Called ONCE — build the DOM skeleton
-      el.innerHTML = `
-        <div class="metric-icon">⚡</div>
-        <div class="metric-label">CPU LOAD</div>
-        <div class="metric-value" data-id="value">—</div>
-        <div class="metric-sub" data-id="sub"></div>
-        <div class="prog-bar"><div class="prog-fill" data-id="bar"></div></div>
-      `;
-    },
-    update(el, data) {
-      // Called on EVERY WebSocket update — surgical DOM updates only
-      if (!data) return;
-      const color = barColor(data.load);
-      const val = el.querySelector('[data-id="value"]');
-      const sub = el.querySelector('[data-id="sub"]');
-      const bar = el.querySelector('[data-id="bar"]');
-      if (val) { val.textContent = data.load + '%'; val.style.color = color; }
-      if (sub) sub.textContent = data.cores + ' cores';
-      if (bar) { bar.style.width = data.load + '%'; bar.style.background = color; }
-    }
-  };
-})();
+export default function CpuPanel({ data, error, connected, lastUpdate, api, config, cls }) {
+  if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
+  if (!data) return html`<div class=${cls('loading')}>Loading...</div>`;
+
+  const color = barColor(data.load);
+
+  return html`
+    <div class=${cls('wrap')}>
+      ${!connected && html`<div class=${cls('stale')}>⚠ Stale</div>`}
+      <div class=${cls('icon')}>⚡</div>
+      <div class=${cls('label')}>CPU LOAD</div>
+      <div class=${cls('value')} style="color: ${color}">${data.load}%</div>
+      <div class=${cls('sub')}>${data.cores} cores</div>
+      <div class=${cls('bar')}>
+        <div class=${cls('fill')} style="width: ${data.load}%; background: ${color}"></div>
+      </div>
+    </div>
+  `;
+}

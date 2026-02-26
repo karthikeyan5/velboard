@@ -1,12 +1,26 @@
 {
   "id": "uptime",
+  "contractVersion": "1.0",
   "name": "System Uptime",
-  "version": "1.0.0",
   "description": "System uptime and hostname",
-  "author": "openclaw",
-  "position": 4,
+  "version": "1.0.0",
+  "author": "core",
+  "position": 40,
   "size": "half",
   "refreshMs": 2000,
   "requires": [],
+  "capabilities": ["fetch"],
+  "dataSchema": {
+    "type": "object",
+    "properties": {
+      "uptime": { "type": "number" },
+      "hostname": { "type": "string" }
+    },
+    "required": ["uptime"]
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "max": 30
+  },
   "config": {}
 }

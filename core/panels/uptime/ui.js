@@ -1,32 +1,23 @@
-/**
- * Uptime Panel UI — Vanilla JS
- * Displays: Uptime formatted, hostname
- */
+import { html, useState, useEffect } from '/core/vendor/preact-htm.js';
 
-(function() {
-  const fmtUptime = (s) => {
-    const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
-    if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
-    if (h > 0) return h + 'h ' + m + 'm';
-    return m + 'm';
-  };
+const fmtUptime = (s) => {
+  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
+  if (d > 0) return d + 'd ' + h + 'h ' + m + 'm';
+  if (h > 0) return h + 'h ' + m + 'm';
+  return m + 'm';
+};
 
-  window.DashboardPanels = window.DashboardPanels || {};
-  window.DashboardPanels['uptime'] = {
-    render(el, data) {
-      el.innerHTML = `
-        <div class="metric-icon">⏱</div>
-        <div class="metric-label">UPTIME</div>
-        <div class="metric-value" data-id="value" style="color:var(--cyan)">—</div>
-        <div class="metric-sub" data-id="sub"></div>
-      `;
-    },
-    update(el, data) {
-      if (!data) return;
-      const val = el.querySelector('[data-id="value"]');
-      const sub = el.querySelector('[data-id="sub"]');
-      if (val) val.textContent = fmtUptime(data.uptime);
-      if (sub) sub.textContent = data.hostname || '';
-    }
-  };
-})();
+export default function UptimePanel({ data, error, connected, lastUpdate, api, config, cls }) {
+  if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
+  if (!data) return html`<div class=${cls('loading')}>Loading...</div>`;
+
+  return html`
+    <div class=${cls('wrap')}>
+      ${!connected && html`<div class=${cls('stale')}>⚠ Stale</div>`}
+      <div class=${cls('icon')}>⏱</div>
+      <div class=${cls('label')}>UPTIME</div>
+      <div class=${cls('value')} style="color: var(--cyan)">${fmtUptime(data.uptime)}</div>
+      <div class=${cls('sub')}>${data.hostname || ''}</div>
+    </div>
+  `;
+}

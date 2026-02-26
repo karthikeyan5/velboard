@@ -1,19 +1,11 @@
-/**
- * Memory Panel API
- */
-
 const si = require('systeminformation');
 
-module.exports = ({ hooks, auth }) => ({
-  endpoint: '/api/panels/memory',
+module.exports = ({ hooks, config, auth, panel, deps }) => ({
+  endpoint: `/api/panels/${panel.id}`,
+
   handler: async (req, res) => {
-    let user = req.body?.initData
-      ? auth.validateInitData(req.body.initData)
-      : auth.getUserFromCookie(req);
-    
-    if (!user || !auth.isAllowed(user.id)) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
+    const user = auth.check(req);
+    if (!user) return res.status(403).json({ error: 'Unauthorized' });
 
     const mem = await si.mem();
     const data = {
@@ -24,6 +16,7 @@ module.exports = ({ hooks, auth }) => ({
       pct: Math.round((mem.used / mem.total) * 1000) / 10
     };
 
-    res.json(hooks.filter('panel.memory.data', data));
+    const filtered = await hooks.filter(`panel.${panel.id}.data`, data, { user });
+    res.json(filtered);
   }
 });

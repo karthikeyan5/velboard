@@ -1,12 +1,29 @@
 {
   "id": "disk",
+  "contractVersion": "1.0",
   "name": "Disk Usage",
-  "version": "1.0.0",
   "description": "Disk space usage with mount point info",
-  "author": "openclaw",
-  "position": 3,
+  "version": "1.0.0",
+  "author": "core",
+  "position": 30,
   "size": "half",
   "refreshMs": 2000,
   "requires": [],
+  "capabilities": ["fetch"],
+  "dataSchema": {
+    "type": "object",
+    "properties": {
+      "total": { "type": "number" },
+      "used": { "type": "number" },
+      "free": { "type": "number" },
+      "pct": { "type": "number" },
+      "mount": { "type": "string" }
+    },
+    "required": ["total", "used", "pct"]
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "max": 30
+  },
   "config": {}
 }

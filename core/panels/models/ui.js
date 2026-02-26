@@ -1,55 +1,39 @@
-/**
- * Models Panel UI — Vanilla JS
- * Displays: Primary/Fallback/Sub-agent/Heartbeat rows with model pills
- */
+import { html, useState, useEffect } from '/core/vendor/preact-htm.js';
 
-(function() {
-  const shortModel = (m) => {
-    if (!m) return '';
-    return m.replace('anthropic/', '').replace('google/', '').replace(/-2025\d{4}/g, '');
-  };
+const shortModel = (m) => {
+  if (!m) return '';
+  return m.replace('anthropic/', '').replace('google/', '').replace(/-2025\d{4}/g, '');
+};
 
-  let rendered = false; // Render once (static data)
+export default function ModelsPanel({ data, error, connected, lastUpdate, api, config, cls }) {
+  if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
+  if (!data) return html`<div class=${cls('loading')}>Loading...</div>`;
 
-  window.DashboardPanels = window.DashboardPanels || {};
-  window.DashboardPanels['models'] = {
-    render(el, data) {
-      el.innerHTML = `
-        <div class="section-title"><div class="dot"></div> Models</div>
-        <div data-id="content" style="color:var(--text-dim);font-size:12px;">Loading...</div>
-      `;
-    },
-    update(el, data) {
-      if (!data || rendered) return;
-      
-      const content = el.querySelector('[data-id="content"]');
-      if (!content) return;
+  const rows = [
+    { label: 'Primary', model: data.primary },
+    ...(data.fallbacks || []).map((m, i) => ({ label: `Fallback ${i + 1}`, model: m })),
+    ...(data.subagent ? [{ label: 'Sub-agents', model: data.subagent }] : []),
+    ...(data.heartbeat ? [{ label: 'Heartbeat', model: data.heartbeat }] : []),
+  ];
 
-      const rows = [];
-      rows.push({ label: 'Primary', model: data.primary, cls: 'primary' });
-      for (let i = 0; i < (data.fallbacks || []).length; i++) {
-        rows.push({ label: `Fallback ${i + 1}`, model: data.fallbacks[i], cls: 'fallback' });
-      }
-      if (data.subagent) rows.push({ label: 'Sub-agents', model: data.subagent, cls: 'sub' });
-      if (data.heartbeat) rows.push({ label: 'Heartbeat', model: data.heartbeat, cls: '' });
-
-      let html = '';
-      for (const r of rows) {
-        html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);">
-          <span style="font-size:11px;color:var(--text-dim);">${r.label}</span>
-          <span class="model-pill ${r.cls}" style="margin:0;">${shortModel(r.model)}</span>
-        </div>`;
-      }
-
-      // Channel + context row
-      html += `<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">`;
-      if (data.channel) html += `<span>📡 ${data.channel}</span>`;
-      if (data.context) html += `<span>📚 ${data.context} context</span>`;
-      if (data.heartbeatInterval) html += `<span>💓 ${data.heartbeatInterval}</span>`;
-      html += '</div>';
-
-      content.innerHTML = html;
-      rendered = true;
-    }
-  };
-})();
+  return html`
+    <div class=${cls('wrap')}>
+      ${!connected && html`<div class=${cls('stale')}>⚠ Stale</div>`}
+      <div class=${cls('title')} style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:1px">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent)"></span>
+        Models
+      </div>
+      ${rows.map(r => html`
+        <div class=${cls('row')} style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+          <span style="font-size:11px;color:var(--text-dim)">${r.label}</span>
+          <span style="font-size:12px;font-weight:500;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.05)">${shortModel(r.model)}</span>
+        </div>
+      `)}
+      <div class=${cls('meta')} style="display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace">
+        ${data.channel && html`<span>📡 ${data.channel}</span>`}
+        ${data.context && html`<span>📚 ${data.context} context</span>`}
+        ${data.heartbeatInterval && html`<span>💓 ${data.heartbeatInterval}</span>`}
+      </div>
+    </div>
+  `;
+}

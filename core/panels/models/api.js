@@ -1,16 +1,12 @@
-/**
- * Models Panel API
- */
-
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
-function getAgentInfo() {
+function getAgentInfo(readFileSync) {
   const WORKSPACE = path.resolve(__dirname, '..', '..', '..', '..');
   const cfgPath = path.join(WORKSPACE, '..', 'openclaw.json');
-  
+
   try {
-    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
+    const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
     const agent = cfg.agents?.defaults || {};
     const model = agent.model || {};
     return {
@@ -29,20 +25,17 @@ function getAgentInfo() {
   }
 }
 
-module.exports = ({ hooks, auth }) => ({
-  endpoint: '/api/panels/models',
-  handler: async (req, res) => {
-    let user = req.body?.initData
-      ? auth.validateInitData(req.body.initData)
-      : auth.getUserFromCookie(req);
-    
-    if (!user || !auth.isAllowed(user.id)) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
+module.exports = ({ hooks, config, auth, panel, deps }) => ({
+  endpoint: `/api/panels/${panel.id}`,
 
-    const data = getAgentInfo();
+  handler: async (req, res) => {
+    const user = auth.check(req);
+    if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+    const data = getAgentInfo(fs.readFileSync);
     if (!data) return res.status(500).json({ error: 'Agent config not found' });
 
-    res.json(hooks.filter('panel.models.data', data));
+    const filtered = await hooks.filter(`panel.${panel.id}.data`, data, { user });
+    res.json(filtered);
   }
 });

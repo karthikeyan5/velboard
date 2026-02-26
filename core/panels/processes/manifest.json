@@ -1,12 +1,28 @@
 {
   "id": "processes",
+  "contractVersion": "1.0",
   "name": "Process Overview",
-  "version": "1.0.0",
   "description": "Total, running, sleeping process counts and OS info",
-  "author": "openclaw",
-  "position": 5,
+  "version": "1.0.0",
+  "author": "core",
+  "position": 50,
   "size": "full",
   "refreshMs": 2000,
   "requires": [],
+  "capabilities": ["fetch"],
+  "dataSchema": {
+    "type": "object",
+    "properties": {
+      "total": { "type": "integer" },
+      "running": { "type": "integer" },
+      "sleeping": { "type": "integer" },
+      "os": { "type": "string" }
+    },
+    "required": ["total", "running", "sleeping"]
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "max": 30
+  },
   "config": {}
 }

@@ -1,12 +1,33 @@
 {
   "id": "models",
+  "contractVersion": "1.0",
   "name": "Model Routing",
+  "description": "Agent model configuration: primary, fallbacks, sub-agent",
   "version": "1.0.0",
-  "description": "Agent model configuration: primary, fallbacks, sub-agent, heartbeat",
-  "author": "openclaw",
-  "position": 8,
+  "author": "core",
+  "position": 80,
   "size": "full",
   "refreshMs": 10000,
   "requires": [],
+  "capabilities": ["fetch"],
+  "dataSchema": {
+    "type": "object",
+    "properties": {
+      "primary": { "type": "string" },
+      "fallbacks": { "type": "array", "items": { "type": "string" } },
+      "subagent": { "type": ["string", "null"] },
+      "heartbeat": { "type": ["string", "null"] },
+      "heartbeatInterval": { "type": ["string", "null"] },
+      "context": { "type": "string" },
+      "channel": { "type": "string" },
+      "streamMode": { "type": "string" },
+      "name": { "type": "string" }
+    },
+    "required": ["primary"]
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "max": 30
+  },
   "config": {}
 }

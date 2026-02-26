@@ -1,12 +1,28 @@
 {
   "id": "claude-usage",
+  "contractVersion": "1.0",
   "name": "Claude Usage",
+  "description": "Claude Max subscription usage stats (5hr, 7day, per-model)",
   "version": "1.0.0",
-  "description": "Claude Max subscription usage stats (5hr, 7day, per-model). Hidden if data unavailable.",
-  "author": "openclaw",
-  "position": 6,
+  "author": "core",
+  "position": 60,
   "size": "full",
   "refreshMs": 5000,
   "requires": [],
+  "capabilities": ["fetch"],
+  "dataSchema": {
+    "type": "object",
+    "properties": {
+      "five_hour": { "type": "object" },
+      "seven_day": { "type": "object" },
+      "seven_day_opus": { "type": "object" },
+      "seven_day_sonnet": { "type": "object" },
+      "fetched_at": { "type": "string" }
+    }
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "max": 30
+  },
   "config": {}
 }

@@ -1,12 +1,35 @@
 {
   "id": "openclaw-status",
+  "contractVersion": "1.0",
   "name": "OpenClaw Status",
+  "description": "Raw output from openclaw status command",
   "version": "1.0.0",
-  "description": "Raw output from 'openclaw status' command",
-  "author": "openclaw",
-  "position": 9,
+  "author": "core",
+  "position": 90,
   "size": "full",
   "refreshMs": 10000,
   "requires": [],
+  "capabilities": ["fetch"],
+  "dataSchema": {
+    "type": "object",
+    "properties": {
+      "online": { "type": "boolean" },
+      "version": { "type": "string" },
+      "os": { "type": "string" },
+      "channel": { "type": "object" },
+      "heartbeat": { "type": "string" },
+      "sessions": { "type": "string" },
+      "gateway": { "type": "string" },
+      "agents": { "type": "string" },
+      "memory": { "type": "string" },
+      "security": { "type": ["object", "null"] },
+      "error": { "type": "string" }
+    },
+    "required": ["online"]
+  },
+  "rateLimit": {
+    "windowMs": 60000,
+    "max": 30
+  },
   "config": {}
 }

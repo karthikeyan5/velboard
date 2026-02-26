@@ -1,31 +1,27 @@
-/**
- * Processes Panel UI — Vanilla JS
- * Displays: Total/running/sleeping counts, OS
- */
+import { html, useState, useEffect } from '/core/vendor/preact-htm.js';
 
-(function() {
-  window.DashboardPanels = window.DashboardPanels || {};
-  window.DashboardPanels['processes'] = {
-    render(el, data) {
-      el.innerHTML = `
-        <div class="metric-icon">⚙️</div>
-        <div class="metric-label">PROCESSES</div>
-        <div class="proc-row"><span class="proc-label">Total</span><span class="proc-value" data-id="total">—</span></div>
-        <div class="proc-row"><span class="proc-label">Running</span><span class="proc-value" data-id="running" style="color:var(--green)">—</span></div>
-        <div class="proc-row"><span class="proc-label">Sleeping</span><span class="proc-value" data-id="sleeping">—</span></div>
-        <div class="proc-row"><span class="proc-label">OS</span><span class="proc-value" data-id="os" style="font-size:11px">—</span></div>
-      `;
-    },
-    update(el, data) {
-      if (!data) return;
-      const total = el.querySelector('[data-id="total"]');
-      const running = el.querySelector('[data-id="running"]');
-      const sleeping = el.querySelector('[data-id="sleeping"]');
-      const os = el.querySelector('[data-id="os"]');
-      if (total) total.textContent = data.total || '—';
-      if (running) running.textContent = data.running || '—';
-      if (sleeping) sleeping.textContent = data.sleeping || '—';
-      if (os) os.textContent = data.os || '—';
-    }
-  };
-})();
+export default function ProcessesPanel({ data, error, connected, lastUpdate, api, config, cls }) {
+  if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
+  if (!data) return html`<div class=${cls('loading')}>Loading...</div>`;
+
+  const rows = [
+    { label: 'Total', value: data.total, style: '' },
+    { label: 'Running', value: data.running, style: 'color: var(--green)' },
+    { label: 'Sleeping', value: data.sleeping, style: '' },
+    { label: 'OS', value: data.os || '—', style: 'font-size: 11px' },
+  ];
+
+  return html`
+    <div class=${cls('wrap')}>
+      ${!connected && html`<div class=${cls('stale')}>⚠ Stale</div>`}
+      <div class=${cls('icon')}>⚙️</div>
+      <div class=${cls('label')}>PROCESSES</div>
+      ${rows.map(r => html`
+        <div class=${cls('row')} style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+          <span style="color: var(--text-dim); font-size: 12px">${r.label}</span>
+          <span style="${r.style}">${r.value}</span>
+        </div>
+      `)}
+    </div>
+  `;
+}

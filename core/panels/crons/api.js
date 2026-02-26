@@ -1,21 +1,17 @@
-/**
- * Crons Panel API
- */
-
-const fs = require('fs');
 const path = require('path');
+const fs = require('fs');
 
-function getCronJobs() {
+function getCronJobs(readFileSync) {
   const WORKSPACE = path.resolve(__dirname, '..', '..', '..', '..');
   const cronPaths = [
     path.join(WORKSPACE, '..', 'cron', 'jobs.json'),
     path.join(WORKSPACE, '..', 'agents', 'main', 'cron-jobs.json')
   ];
-  
+
   for (const p of cronPaths) {
     if (fs.existsSync(p)) {
       try {
-        const data = JSON.parse(fs.readFileSync(p, 'utf8'));
+        const data = JSON.parse(readFileSync(p, 'utf8'));
         const jobs = Array.isArray(data) ? data : (data.jobs || []);
         return jobs.map(j => ({
           id: j.id,
@@ -38,17 +34,16 @@ function getCronJobs() {
   return [];
 }
 
-module.exports = ({ hooks, auth }) => ({
-  endpoint: '/api/panels/crons',
-  handler: async (req, res) => {
-    let user = req.body?.initData
-      ? auth.validateInitData(req.body.initData)
-      : auth.getUserFromCookie(req);
-    
-    if (!user || !auth.isAllowed(user.id)) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
+module.exports = ({ hooks, config, auth, panel, deps }) => ({
+  endpoint: `/api/panels/${panel.id}`,
 
-    res.json(hooks.filter('panel.crons.data', getCronJobs()));
+  handler: async (req, res) => {
+    const user = auth.check(req);
+    if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+    // Use sync readFile for backward compat (getCronJobs uses sync reads)
+    const data = getCronJobs(fs.readFileSync);
+    const filtered = await hooks.filter(`panel.${panel.id}.data`, data, { user });
+    res.json(filtered);
   }
 });

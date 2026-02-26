@@ -1,18 +1,11 @@
-/**
- * OpenClaw Status Panel API — Parsed fields
- */
+const { execFile } = require('child_process');
+const { promisify } = require('util');
+const execFileAsync = promisify(execFile);
 
-const { execFileSync } = require('child_process');
-
-function getSystemStatus() {
+async function getSystemStatus(exec) {
   try {
-    const raw = execFileSync('openclaw', ['status'], {
-      timeout: 15000,
-      encoding: 'utf8',
-      shell: false
-    }).trim();
+    const raw = await exec('openclaw', ['status']);
 
-    // Parse key fields from the table output
     const get = (label) => {
       const re = new RegExp(`│\\s*${label}\\s*│\\s*(.+?)\\s*│`, 'i');
       const m = raw.match(re);
@@ -29,13 +22,11 @@ function getSystemStatus() {
     const agents = get('Agents');
     const memory = get('Memory');
 
-    // Parse security audit line
     const secMatch = raw.match(/Summary:\s*(\d+)\s*critical[,·]\s*(\d+)\s*warn[,·]\s*(\d+)\s*info/i);
     const security = secMatch
       ? { critical: parseInt(secMatch[1]), warn: parseInt(secMatch[2]), info: parseInt(secMatch[3]) }
       : null;
 
-    // Channel status
     const chanMatch = raw.match(/│\s*(telegram|discord|whatsapp|signal)\s*│\s*(ON|OFF)\s*│/i);
     const chanStatus = chanMatch ? { name: chanMatch[1], status: chanMatch[2] } : null;
 
@@ -56,17 +47,20 @@ function getSystemStatus() {
   }
 }
 
-module.exports = ({ hooks, auth }) => ({
-  endpoint: '/api/panels/openclaw-status',
-  handler: async (req, res) => {
-    let user = req.body?.initData
-      ? auth.validateInitData(req.body.initData)
-      : auth.getUserFromCookie(req);
-    
-    if (!user || !auth.isAllowed(user.id)) {
-      return res.status(403).json({ error: 'Unauthorized' });
-    }
+module.exports = ({ hooks, config, auth, panel, deps }) => ({
+  endpoint: `/api/panels/${panel.id}`,
 
-    res.json(hooks.filter('panel.openclaw-status.data', getSystemStatus()));
+  handler: async (req, res) => {
+    const user = auth.check(req);
+    if (!user) return res.status(403).json({ error: 'Unauthorized' });
+
+    const exec = deps?.exec || (async (cmd, args) => {
+      const result = await execFileAsync(cmd, args, { timeout: 15000, encoding: 'utf8' });
+      return result.stdout.trim();
+    });
+
+    const data = await getSystemStatus(exec);
+    const filtered = await hooks.filter(`panel.${panel.id}.data`, data, { user });
+    res.json(filtered);
   }
 });
