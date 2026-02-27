@@ -90,6 +90,25 @@ Each decision includes what would make us change our mind. Architecture should e
 
 ---
 
+### Why validation rules as single source of truth
+
+**Decision:** Panel validation rules in `panels.js` are the seed of `core/schema/` — Clawboard's type system. Each validation check is a discrete function, designed for extraction into schema modules at v3.
+
+**Why:** The docs audit found 21 issues, 7 critical. Root cause: documentation and code are separate artifacts describing the same truth. They drift. The solution: make validation rules in code the single source of truth. Multiple consumers (startup validation, doctor CLI, introspection API) read the same rules. Drift becomes architecturally impossible.
+
+**Considered:**
+- Doc linting tests (adds a third artifact to keep in sync — doesn't solve the root problem)
+- Schema-as-documentation / enriched manifests (schema inflation — every concern bloats manifest.json into a mini-DSL)
+- Template panel as documentation (becomes a god-panel trying to demonstrate everything)
+- Declarative-first manifests (you're building a DSL in JSON — DSLs always grow)
+- Delete docs, code is obvious (doesn't scale past v2's 400 lines to v6/ERP)
+
+**Growth path:** v2 = Elm-quality errors in panels.js. v3 = extract to `core/schema/panels.js` + doctor CLI. v4 = `/api/schema` introspection. v5-v6 = schema modules for roles, events, files. Each version adds a module. No version changes the architecture.
+
+**Would change if:** The validation contract (`{ level, message, fix, ref }`) proves insufficient for a new concern that can't be expressed as "check state, return errors." We don't expect this — the contract is intentionally generic.
+
+---
+
 ### Why capabilities field exists
 
 **Decision:** Panels declare `capabilities: ["fetch"]` in manifest. Core validates against current version.
