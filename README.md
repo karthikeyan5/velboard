@@ -58,10 +58,10 @@ All panels update every 2 seconds via WebSocket. No polling.
 
 You need [Vel](https://github.com/essdee/vel) installed and running.
 
-### As a plugin
+### As an app
 
 ```bash
-cd your-vel-app/plugins/
+cd your-vel-app/apps/
 git clone https://github.com/karthikeyan5/clawboard.git
 ```
 
@@ -71,8 +71,8 @@ Restart Vel. All 9 panels auto-discover.
 
 ```bash
 # Copy just the panels you want
-cp -r clawboard/panels/cpu your-vel-app/plugins/clawboard/panels/
-cp -r clawboard/panels/memory your-vel-app/plugins/clawboard/panels/
+cp -r clawboard/panels/cpu your-vel-app/apps/clawboard/panels/
+cp -r clawboard/panels/memory your-vel-app/apps/clawboard/panels/
 ```
 
 ## Configuration
@@ -122,7 +122,7 @@ See [`ROADMAP.md`](./ROADMAP.md) for planned panels and features.
 
 ## Framework
 
-Clawboard is built on **[Vel](https://github.com/essdee/vel)** — an AI-native Go framework for real-time web apps. For framework docs (architecture, contracts, hooks, plugins, testing), see the [Vel repo](https://github.com/essdee/vel).
+Clawboard is built on **[Vel](https://github.com/essdee/vel)** — an AI-native Go framework for real-time web apps. For framework docs (architecture, contracts, hooks, apps, testing), see the [Vel repo](https://github.com/essdee/vel).
 
 ## License
 

@@ -15,7 +15,7 @@ You need:
 ## Step 2 — Install panels
 
 ```bash
-cd <vel-app-dir>/plugins/
+cd <vel-app-dir>/apps/
 git clone https://github.com/karthikeyan5/clawboard.git
 ```
 
@@ -44,7 +44,7 @@ If the user said yes to Claude Max:
 2. If authenticated, set up the usage monitor:
    ```bash
    # Create skill symlink if not already present
-   ln -sf <vel-app-dir>/plugins/clawboard/services/claude-usage-monitor ~/.openclaw/workspace/skills/claude-usage-monitor
+   ln -sf <vel-app-dir>/apps/clawboard/services/claude-usage-monitor ~/.openclaw/workspace/skills/claude-usage-monitor
    ```
 
 3. The claude-usage panel will auto-detect usage data from `~/.openclaw/workspace/claude-usage.json`.
@@ -60,7 +60,7 @@ Verify panels loaded:
 curl -s http://localhost:3700/api/panels | python3 -m json.tool
 ```
 
-All 9 panels should appear with `plugin:clawboard` source.
+All 9 panels should appear with `app:clawboard` source.
 
 ## Step 6 — Personalize (optional)
 
@@ -80,7 +80,7 @@ Edit `config.json` to customize the landing page:
 ## Updating
 
 ```bash
-cd <vel-app-dir>/plugins/clawboard
+cd <vel-app-dir>/apps/clawboard
 git pull
 ```
 
@@ -88,6 +88,6 @@ Restart Vel to pick up changes.
 
 ## Troubleshooting
 
-- **Panels not showing** → check `plugins/clawboard/panels/` exists and has manifest.json files
+- **Panels not showing** → check `apps/clawboard/panels/` exists and has manifest.json files
 - **Claude usage empty** → verify `claude-usage.json` exists in workspace
 - **OpenClaw status empty** → verify `openclaw` CLI is in PATH
