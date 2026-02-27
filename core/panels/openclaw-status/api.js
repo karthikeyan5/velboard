@@ -2,7 +2,16 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
 
+// Cache openclaw status (expensive CLI call ~2s)
+let _statusCache = null;
+let _statusCacheTime = 0;
+const STATUS_CACHE_TTL = 30000; // 30 seconds
+
 async function getSystemStatus(exec) {
+  const now = Date.now();
+  if (_statusCache && (now - _statusCacheTime) < STATUS_CACHE_TTL) {
+    return _statusCache;
+  }
   try {
     const raw = await exec('openclaw', ['status']);
 
@@ -30,7 +39,7 @@ async function getSystemStatus(exec) {
     const chanMatch = raw.match(/│\s*(telegram|discord|whatsapp|signal)\s*│\s*(ON|OFF)\s*│/i);
     const chanStatus = chanMatch ? { name: chanMatch[1], status: chanMatch[2] } : null;
 
-    return {
+    const result = {
       online: true,
       version: version || 'unknown',
       os: os || 'unknown',
@@ -42,6 +51,9 @@ async function getSystemStatus(exec) {
       memory: memory || 'unknown',
       security,
     };
+    _statusCache = result;
+    _statusCacheTime = Date.now();
+    return result;
   } catch {
     return { online: false, error: 'CLI not found or failed' };
   }
