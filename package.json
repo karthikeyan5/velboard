@@ -5,8 +5,8 @@
   "main": "core/server.js",
   "scripts": {
     "start": "node core/server.js",
-    "test": "node --test 'core/**/*.test.js' 'core/panels/*/test.js'",
-    "test:watch": "node --test --watch 'core/**/*.test.js' 'core/panels/*/test.js'",
+    "test": "find core -name '*.test.js' -o -name 'test.js' -path '*/panels/*' | xargs node --test",
+    "test:watch": "node --test --watch $(find core -name '*.test.js' -o -name 'test.js' -path '*/panels/*')",
     "smoke": "bash scripts/smoke.sh",
     "screenshots": "bash scripts/screenshots.sh"
   },
