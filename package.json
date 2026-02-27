@@ -11,6 +11,7 @@
     "screenshots": "bash scripts/screenshots.sh"
   },
   "dependencies": {
+    "compression": "^1.8.1",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.0",
     "express-rate-limit": "^8.2.1",

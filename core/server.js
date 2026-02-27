@@ -13,6 +13,7 @@ const http = require('http');
 const cookieParser = require('cookie-parser');
 const { WebSocketServer } = require('ws');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const { getSystemMetrics, getUsageData, getSystemStatus, getAgentInfo, getCronJobs } = require('./lib/data');
 
 // Load core modules
@@ -77,6 +78,7 @@ const PORT = config.port || 3700;
 hooks.action('core.server.init', app, config);
 
 // Middleware
+app.use(compression());
 app.use(express.json());
 app.use(cookieParser(COOKIE_SECRET));
 app.set('trust proxy', 1);
@@ -104,12 +106,17 @@ const authLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// Static files (core/public/)
-app.use('/public', express.static(path.join(ROOT_DIR, 'core', 'public')));
+// Static files (core/public/) — cache 1 hour, revalidate with etag
+app.use('/public', express.static(path.join(ROOT_DIR, 'core', 'public'), {
+  maxAge: '1h',
+  etag: true
+}));
 
-// Serve vendored JS
+// Serve vendored JS — cache 1 week (versioned, rarely changes)
 app.use('/core/vendor', express.static(path.join(ROOT_DIR, 'core', 'vendor'), {
-  setHeaders: (res) => res.setHeader('Content-Type', 'application/javascript')
+  setHeaders: (res) => res.setHeader('Content-Type', 'application/javascript'),
+  maxAge: '7d',
+  etag: true
 }));
 
 // ── Discover and register panels ──
