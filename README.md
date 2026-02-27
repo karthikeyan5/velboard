@@ -10,10 +10,9 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-2.2.0-c9a84c?style=flat-square" alt="Version">
+  <img src="https://img.shields.io/badge/version-3.0.0-c9a84c?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/node-18%2B-blue?style=flat-square" alt="Node">
-  <img src="https://img.shields.io/badge/tests-54%20passing-brightgreen?style=flat-square" alt="Tests">
+  <img src="https://img.shields.io/badge/go-1.22%2B-00ADD8?style=flat-square" alt="Go">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen?style=flat-square" alt="PRs Welcome">
 </p>
 
@@ -27,22 +26,23 @@ Every time you ask your agent *"what's my CPU?"* or *"how much quota left?"* —
 
 ## The Solution
 
-Clawboard gives your OpenClaw agent a live web dashboard. WebSocket-powered. Telegram-authenticated. Zero tokens burned.
+Clawboard gives your OpenClaw agent a live web dashboard. WebSocket-powered. Telegram-authenticated. Zero tokens burned. Single binary, zero dependencies.
 
 Open a tab. See everything. Done.
 
-- **9 modular panels** — CPU, Memory, Disk, Uptime, Processes, Claude Usage, Crons, Models, OpenClaw Status (plus `_test` for development)
-- **Preact+HTM UI** — Zero build step, native ES modules, ~400ms load
+- **10 modular panels** — CPU, Memory, Disk, Uptime, Processes, Claude Usage, Crons, Models, OpenClaw Status (plus `_test` for development)
+- **Go backend** — Single binary, ~10MB, 76ms full page load, 4ms TTFB
+- **Preact+HTM UI** — Zero build step, native ES modules, ~400ms client render
 - **Panel contract v1.0** — Standardized props, scoped CSS via `cls()`, error boundaries
-- **54 unit tests** — Co-located test.js files, `node:test` + `node:assert`
 - **Live updates** — 2-second WebSocket refresh, no polling
 - **Telegram auth** — Mini App (inline) + Login Widget (browser)
+- **TEST_MODE** — Auto-login for development, no Telegram needed
 - **Data caching** — DeviceStorage (Mini App) + localStorage (browser), 60s TTL
 - **Service Worker** — Offline-capable static assets (browser mode)
 - **Config-driven** — Name, emoji, colors, traits — one JSON file
 - **Personality landing page** — Animated, branded, yours
 - **Extensible** — Custom panels, hooks, plugins, themes
-- **Security hardened** — HMAC validation, rate limiting, signed cookies
+- **Security hardened** — HMAC validation, rate limiting, signed cookies, gzip
 
 ## Screenshots
 
@@ -64,22 +64,34 @@ Open a tab. See everything. Done.
 git clone https://github.com/karthikeyan5/clawboard.git
 cd clawboard
 
-# 2. Run the setup wizard
-bash setup.sh
+# 2. Build
+go build -o clawboard .
 
-# 3. Done. Open your dashboard URL.
+# 3. Configure
+cp config.example.json config.json
+# Edit config.json with your bot token and allowed user IDs
+
+# 4. Run
+BOT_TOKEN=your-bot-token ./clawboard
 ```
 
 Or just send your agent the repo link. It reads `AGENT-SETUP.md` and handles everything.
+
+### Development Mode
+
+```bash
+TEST_MODE=true BOT_TOKEN=dummy ./clawboard
+```
+Auto-login, no Telegram auth needed. Opens `/auth/dev` → sets cookie → dashboard.
 
 ## Tech Stack
 
 | Layer | Tech |
 |-------|------|
-| Server | Express + ws (WebSocket) |
+| Server | **Go** `net/http` + gorilla/websocket |
+| Metrics | `gopsutil` (CPU, memory, disk, processes) |
 | UI | **Preact + HTM** — zero build step, vendored bundle |
 | Auth | Telegram HMAC-SHA256 + signed cookies |
-| Tests | `node:test` + `node:assert` (stdlib, no deps) |
 | Styling | CSS variables, scoped via `cls()` helper |
 
 ## Panels
@@ -101,14 +113,8 @@ All panels are independent. Disable any in `config.json`. Add your own.
 ## Testing
 
 ```bash
-# Unit tests (54 tests across 21 suites)
-npm test
-
-# Smoke tests (integration — all API endpoints)
-npm run smoke
+go test ./...
 ```
-
-Tests are co-located with panels (`core/panels/*/test.js`). Uses Node.js built-in test runner — no test framework dependencies.
 
 ## Customization
 
@@ -122,39 +128,31 @@ Tests are co-located with panels (`core/panels/*/test.js`). Uses Node.js built-i
 }
 ```
 
-| Color | Hex | Vibe |
-|-------|-----|------|
-| 🟡 Gold | `#c9a84c` | Classic, warm |
-| 🔵 Cyan | `#00d2ff` | Tech, cool |
-| 🟢 Emerald | `#10b981` | Fresh, calm |
-| 🔴 Rose | `#f43f5e` | Bold, urgent |
-| 🟣 Purple | `#a855f7` | Creative, deep |
-
 ## Architecture
 
 See [`architecture.yaml`](./architecture.yaml) for the machine-readable spec, [`ARCHITECTURE.md`](./ARCHITECTURE.md) for WHY decisions.
 
 ```
 clawboard/
-├── core/              # Server, libs, panels, public assets
-│   ├── server.js      # Express + WebSocket (entrypoint)
-│   ├── lib/           # Auth, hooks, panels, validator
-│   ├── panels/        # 9 built-in panels (each: manifest + api + ui + test)
-│   ├── vendor/        # Vendored Preact+HTM bundle
-│   └── public/        # Shell, landing, CSS, service worker
-├── custom/            # Your customizations (git-ignored)
-├── plugins/           # External plugins
-├── config.json        # Your config (git-ignored)
-└── setup.sh           # Interactive setup wizard
+├── main.go               # Entrypoint — config, init, start
+├── internal/             # Go backend
+│   ├── auth/             # Telegram HMAC auth + cookie signing
+│   ├── data/             # System metrics, usage, crons, status
+│   ├── panels/           # Panel discovery + registry
+│   ├── schema/           # Validation
+│   └── server/           # HTTP server + WebSocket
+├── core/                 # Frontend
+│   ├── panels/           # 10 built-in panels (manifest.json + ui.js)
+│   ├── vendor/           # Vendored Preact+HTM bundle
+│   └── public/           # Shell, landing, CSS, service worker
+├── custom/               # Your customizations (git-ignored)
+├── config.json           # Your config (git-ignored)
+└── clawboard.service     # Systemd unit file
 ```
 
 ### Panel Contract v1.0
 
-Each panel is a self-contained folder (`manifest.json` + `api.js` + `ui.js` + optional `test.js`). Panels receive standardized props (`data`, `error`, `connected`, `cls`, etc.), use scoped CSS via `cls()`, and are validated at startup with Elm-quality error messages. See [`CONTRACTS.md`](./CONTRACTS.md) for the full specification.
-
-## Extending
-
-Copy a template, edit, restart. Panels auto-discover. Hooks modify data flow. Routes auto-mount. Themes override CSS variables. See [`AGENT-EXTEND.md`](./AGENT-EXTEND.md) for the full guide.
+Each panel is a self-contained folder (`manifest.json` + `ui.js`). Panels receive standardized props (`data`, `error`, `connected`, `cls`, etc.), use scoped CSS via `cls()`, and are validated at startup. See [`CONTRACTS.md`](./CONTRACTS.md) for the full specification.
 
 ## Security
 
@@ -163,8 +161,8 @@ Copy a template, edit, restart. Panels auto-discover. Hooks modify data flow. Ro
 - **Rate limiting** on all auth endpoints
 - Security headers (X-Content-Type-Options, X-Frame-Options, etc.)
 - WebSocket auth on connect
-- No shell injection — all metrics via Node.js APIs
 - `allowedUsers` whitelist in config
+- **Gzip compression** on all responses
 
 ## For AI Agents
 
@@ -174,22 +172,14 @@ Send your OpenClaw agent:
 
 > Set up Clawboard from https://github.com/karthikeyan5/clawboard
 
-It reads [`AGENT-SETUP.md`](./AGENT-SETUP.md), asks you a few questions in chat (bot token, domain), and handles:
-
-- Cloning, config generation
-- Nginx reverse proxy
-- SSL via Let's Encrypt
-- Systemd service
-- BotFather webhook setup
-
-Zero terminal. Zero DevOps. The agent does it all.
+It reads [`AGENT-SETUP.md`](./AGENT-SETUP.md), asks you a few questions in chat (bot token, domain), and handles everything.
 
 ## Contributing
 
-PRs welcome. Keep it modular. One panel per folder. Tests required.
+PRs welcome. Keep it modular. One panel per folder.
 
 ```bash
-npm test
+go test ./...
 ```
 
 ## License

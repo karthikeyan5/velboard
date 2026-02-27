@@ -92,11 +92,11 @@ echo "BOT_TOKEN=<bot_token>" > ~/.openclaw/workspace/clawboard/.env
 chmod 600 ~/.openclaw/workspace/clawboard/.env
 ```
 
-## Step 6 — Install dependencies
+## Step 6 — Build
 
 ```bash
 cd ~/.openclaw/workspace/clawboard
-npm install --production
+go build -o clawboard .
 ```
 
 ## Step 7 — Claude Max setup (if applicable)
@@ -178,7 +178,7 @@ Type=simple
 User=$(whoami)
 WorkingDirectory=$(echo ~/.openclaw/workspace/clawboard)
 EnvironmentFile=$(echo ~/.openclaw/workspace/clawboard/.env)
-ExecStart=$(which node) core/server.js
+ExecStart=$(echo ~/.openclaw/workspace/clawboard/clawboard)
 Restart=on-failure
 RestartSec=5
 Environment=TZ=$(cat /etc/timezone 2>/dev/null || echo 'UTC')
@@ -216,7 +216,7 @@ Send this message:
 
 ## Error Handling
 
-- If `npm install` fails → check Node.js version (`node -v`, needs 18+)
+- If `go build` fails → check Go version (`go version`, needs 1.22+)
 - If port 3700 is in use → change `port` in config.json and update nginx config
 - If systemd service fails → check `journalctl -u clawboard -f`
 - If nginx test fails → check `sudo nginx -t` for syntax errors

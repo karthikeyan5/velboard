@@ -1,7 +1,7 @@
 system: clawboard
 version: "2.2.0"
 contract_version: "1.0"
-entrypoint: core/server.js
+entrypoint: main.go
 framework: preact-htm
 vendor: core/vendor/preact-htm.js
 
