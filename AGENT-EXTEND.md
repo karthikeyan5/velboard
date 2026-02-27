@@ -1,6 +1,6 @@
 # AGENT-EXTEND.md — AI Agent Playbook
 
-**For AI agents:** How to extend the OpenClaw Dashboard Kit on behalf of your human. Create custom panels, override core panels, register hooks, add routes, install plugins, and create themes.
+**For AI agents:** How to extend Clawboard on behalf of your human. Create custom panels, override core panels, register hooks, add routes, install plugins, and create themes.
 
 ---
 
@@ -23,7 +23,7 @@ Every code change **must** include corresponding documentation updates. No excep
 
 See [`architecture.yaml`](./architecture.yaml) for the full structure and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for WHY decisions.
 
-Extension points: `custom/panels/`, `custom/overrides/`, `custom/hooks.js`, `custom/routes/`, `custom/theme/`, `plugins/`.
+Extension points: `custom/panels/`, `custom/overrides/`, `custom/theme/`, `plugins/`, config-driven routes, Go-native hooks.
 
 **Override resolution (last wins):** core → custom → plugins → overrides.
 
@@ -33,11 +33,13 @@ Extension points: `custom/panels/`, `custom/overrides/`, `custom/hooks.js`, `cus
 
 When your human says "add a panel that shows X":
 
-### Step 1: Copy the template
+### Step 1: Copy an existing panel
 
 ```bash
-cp -r core/templates/panel-example custom/panels/my-panel
+cp -r core/panels/uptime custom/panels/my-panel
 ```
+
+There are no templates — just copy an existing panel folder and modify it.
 
 ### Step 2: Edit manifest.json
 
@@ -61,33 +63,29 @@ cp -r core/templates/panel-example custom/panels/my-panel
 
 See [`CONTRACTS.md`](./CONTRACTS.md) for all required fields and validation rules.
 
-### Step 3: Write api.js (server-side data)
+### Step 3: Data handler (Go, in `internal/data/`)
 
-```javascript
-// Runs in Node.js on the server
-// Receives context: { hooks, config, auth, panel }
-//   - panel: { id, manifest, cls, config } for this panel
-// Must return: { endpoint: string, handler: async (req, res) => void }
+Panel data is served by Go handlers in `internal/data/`. To add data for a custom panel, add a function there and wire it into the `servesPanelData` switch in `internal/server/server.go`:
 
-module.exports = ({ hooks, config, auth, panel }) => ({
-  endpoint: `/api/panels/${panel.id}`,
-  handler: async (req, res) => {
-    // Auth check (required for all panel endpoints)
-    const user = auth.check(req);
-    if (!user) return res.status(403).json({ error: 'Unauthorized' });
+```go
+// internal/data/mypanel.go
+package data
 
-    // Your data logic here
-    const data = {
-      value: 42,
-      label: 'My Metric',
-      timestamp: Date.now()
-    };
+import "encoding/json"
 
-    // Optional: let hooks modify data before sending
-    const filtered = await hooks.filter(`panel.${panel.id}.data`, data, { user });
-    res.json(filtered);
-  }
-});
+func GetMyPanelData() json.RawMessage {
+    result, _ := json.Marshal(map[string]interface{}{
+        "value": 42,
+        "label": "My Metric",
+    })
+    return result
+}
+```
+
+Then add the case in `internal/server/server.go`:
+```go
+case "my-panel":
+    result = data.GetMyPanelData()
 ```
 
 ### Step 4: Write ui.js (browser-side Preact+HTM component)
@@ -116,41 +114,6 @@ export default function MyPanel({ data, error, connected, lastUpdate, api, confi
 
 See [`CONTRACTS.md`](./CONTRACTS.md) for the full ui.js contract (props, rules, CSS). Key points:
 - Import from `/core/vendor/preact-htm.js`, use `cls()` for scoped classes, handle `data === null`.
-
-### Step 5: Write test.js (co-located unit test)
-
-Every panel should have a `test.js` alongside `api.js` and `ui.js`:
-
-```javascript
-// my-panel/test.js
-const { describe, it, mock } = require('node:test');
-const assert = require('node:assert/strict');
-
-describe('my-panel', () => {
-  it('returns data when authed', async () => {
-    const api = require('./api.js');
-    const mockAuth = { check: () => ({ id: 1 }) };
-    const mockHooks = { filter: async (_, d) => d };
-    const { handler } = api({ hooks: mockHooks, config: {}, auth: mockAuth, panel: { id: 'my-panel' }, deps: {} });
-
-    const res = { json: mock.fn(), status: mock.fn(() => res) };
-    await handler({}, res);
-    assert.ok(res.json.mock.calls.length > 0);
-  });
-
-  it('returns 403 when auth fails', async () => {
-    const api = require('./api.js');
-    const mockAuth = { check: () => null };
-    const { handler } = api({ hooks: {}, config: {}, auth: mockAuth, panel: { id: 'my-panel' }, deps: {} });
-
-    const res = { json: mock.fn(), status: mock.fn(() => res) };
-    await handler({}, res);
-    assert.equal(res.status.mock.calls[0].arguments[0], 403);
-  });
-});
-```
-
-**Testing convention:** All tests use `node:test` + `node:assert`. Run with `npm test`. Tests are co-located next to the code they test.
 
 ### Available CSS Variables
 
@@ -186,160 +149,80 @@ cp core/panels/cpu/ui.js custom/overrides/cpu/ui.js
 # Edit the copy — optionally copy manifest.json too for different config
 ```
 
-Your override replaces the core panel's UI but keeps the core API (data source).
-To override the API too, copy api.js as well.
-To fully replace everything, copy all 3 files (manifest + api + ui).
+Your override replaces the core panel's UI but keeps the core data handler.
 
 **To revert:** Delete the folder in custom/overrides/.
 
 ---
 
-## 3. Register Hooks
+## 3. Hooks
 
-Create `custom/hooks.js` to modify core behavior:
+The hook engine is Go-native (`internal/hooks/hooks.go`). Filters and actions are registered programmatically in Go.
 
-```javascript
-// custom/hooks.js
-// Receives the hooks engine + context ({ config, auth })
-// All hooks are optional — only register what you need
+To extend hooks, modify Go code in `internal/hooks/` and rebuild:
 
-module.exports = (hooks, { config, auth }) => {
+```go
+// Register a filter
+hookEngine.AddFilter("panel.cpu.data", func(data interface{}) interface{} {
+    // Modify data
+    return data
+})
 
-  // --- FILTERS (modify data passing through) ---
-
-  // Add temperature to CPU data
-  hooks.addFilter('panel.cpu.data', async (data) => {
-    data.temperature = '45°C'; // Add custom field
-    return data; // Must return modified data
-  });
-
-  // Reorder panels
-  hooks.addFilter('panels.order', (panels) => {
-    // Move claude-usage to position 1
-    return panels.sort((a, b) => a.id === 'claude-usage' ? -1 : 0);
-  });
-
-  // Modify WebSocket payload before it's sent to clients
-  hooks.addFilter('ws.payload', (payload) => {
-    payload.customField = 'hello';
-    return payload;
-  });
-
-  // --- ACTIONS (fire-and-forget events) ---
-
-  // Run code when server starts
-  hooks.on('core.server.init', (app, config) => {
-    console.log('Server initializing...');
-  });
-
-  // Run code when server is ready
-  hooks.on('core.server.ready', (server, config) => {
-    console.log('Server listening!');
-  });
-
-  // React to cron actions from the UI
-  hooks.on('cron.action', ({ jobId, action, result }) => {
-    console.log(`Cron ${action} on ${jobId}: ${result}`);
-  });
-};
+// Register an action
+hookEngine.On("core.server.ready", func() {
+    fmt.Println("Server is ready!")
+})
 ```
 
 ### Available Hooks
 
-| Hook Name | Type | Arguments | Description |
-|-----------|------|-----------|-------------|
-| `core.server.init` | action | `(app, config)` | Express app created, register routes |
-| `core.server.ready` | action | `(server, config)` | Server listening |
-| `core.panels.discovered` | action | `(registry)` | All panels found |
-| `core.panels.order` | filter | `(panels, config)` | Modify panel display order |
-| `panel.{id}.data` | filter | `(data, { user })` | Modify panel API response |
-| `ws.payload` | filter | `(payload)` | Modify WebSocket message |
-| `config.loaded` | filter | `(config)` | Modify config after loading |
-| `auth.validated` | action | `(user, method)` | User authenticated |
-| `cron.action` | action | `({jobId, action, result})` | Cron job action from UI |
-| `update.available` | action | `(versionInfo)` | New version detected |
+| Hook Name | Type | Description |
+|-----------|------|-------------|
+| `core.server.init` | action | Server initializing |
+| `core.server.ready` | action | Server listening |
+| `core.panels.discovered` | action | All panels found |
+| `panel.{id}.data` | filter | Modify panel data response |
+| `config.loaded` | filter | Modify config after loading |
 
 ---
 
 ## 4. Add Custom Routes
 
-Create files in `custom/routes/` — each file exports an Express router setup:
+Routes are config-driven in `config.json`. Static file serving only — no programmatic route handlers:
 
-```javascript
-// custom/routes/my-api.js
-
-module.exports = (app, { hooks, config, auth }) => {
-  // Add a custom GET endpoint
-  app.get('/api/custom/hello', (req, res) => {
-    const user = auth.check(req);
-    if (!user) return res.status(403).json({ error: 'Unauthorized' });
-    res.json({ hello: 'world', user: user.first_name });
-  });
-
-  // Add a custom POST endpoint
-  app.post('/api/custom/do-something', (req, res) => {
-    const user = auth.check(req);
-    if (!user) return res.status(403).json({ error: 'Unauthorized' });
-    // Your logic here
-    res.json({ ok: true });
-  });
-};
+```json
+{
+  "routes": {
+    "/screenshots/": "custom/screenshots",
+    "/docs/": "custom/docs"
+  }
+}
 ```
 
-Routes are auto-loaded at startup. No registration needed — just create the file.
+Each key is a URL prefix, each value is a directory (relative to project root). Files in that directory are served statically.
 
 ---
 
 ## 5. Install a Plugin
 
-Plugins are external git repos with the same structure:
+Plugins are external repos containing panels:
 
 ```bash
 cd plugins/
-git clone https://github.com/someone/openclaw-panel-docker docker-panel
-```
-
-Or add to config.json for the updater to manage:
-
-```json
-{
-  "plugins": [
-    { "name": "docker-panel", "repo": "https://github.com/someone/openclaw-panel-docker" }
-  ]
-}
+git clone https://github.com/someone/clawboard-plugin-docker docker-panel
 ```
 
 ### Plugin structure
 
 ```
 plugins/docker-panel/
-├── manifest.json       ← Plugin metadata + requirements
 ├── panels/
 │   └── docker/
 │       ├── manifest.json
-│       ├── api.js
 │       └── ui.js
-├── hooks.js            ← Optional hooks
-└── routes/             ← Optional custom routes
-    └── docker-api.js
 ```
 
-### Plugin manifest.json
-
-```json
-{
-  "id": "docker-panel",
-  "name": "Docker Containers",
-  "version": "1.0.0",
-  "description": "Shows running Docker containers",
-  "author": "community-user",
-  "homepage": "https://github.com/someone/openclaw-panel-docker",
-  "requires": { "dashboard": ">=2.0.0" },
-  "panels": ["docker"],
-  "hooks": true,
-  "routes": true
-}
-```
+Plugin panels are discovered from `plugins/*/panels/*/manifest.json` and auto-merge into the panel registry. A plugin panel with the same ID as a core panel will override it.
 
 ---
 
@@ -365,38 +248,34 @@ Create `custom/theme/theme.css` to override any CSS variable:
 }
 ```
 
-For more advanced theming, see `core/templates/theme-example/`.
-
 ---
 
 ## Error Handling
 
-- If your panel's api.js throws → returns `{ error: 'Panel API error' }` (doesn't crash server)
-- If your panel's ui.js throws → ErrorBoundary catches it and shows error card
-- If your hooks.js throws → logged to console, other hooks continue
-- If your route throws → returns 500, doesn't crash server
+- If a panel data handler panics → returns error JSON (doesn't crash server)
+- If a panel's ui.js throws → ErrorBoundary catches it and shows error card
+- If a hook panics → logged, other hooks continue
 
 **The dashboard never goes down because of custom/plugin code.**
 
 ---
 
-## Testing Your Panel
+## Testing
 
 ```bash
-# 1. Run unit tests (co-located test.js files)
-npm test
+# Run all Go tests
+go test ./...
 
-# 2. Run smoke tests (integration — all endpoints)
-npm run smoke
+# Build to check compilation
+go build -o /dev/null .
 
-# 3. Start the server for manual testing
-BOT_TOKEN=your-token node core/server.js
+# Start the server for manual testing
+BOT_TOKEN=your-token ./clawboard
 
-# 4. Test your API endpoint
+# Test your API endpoint
 curl http://localhost:3700/api/panels/my-panel
 
-# 5. Open the dashboard in browser
-# Your panel should appear in the grid
+# Open the dashboard in browser — your panel should appear in the grid
 ```
 
 ---
@@ -406,44 +285,9 @@ curl http://localhost:3700/api/panels/my-panel
 1. **NEVER edit anything in `core/`** — use custom/ or plugins/
 2. **Panel IDs:** lowercase, hyphens only (e.g. `my-panel`, not `myPanel`)
 3. **UI components:** Preact+HTM, import from `/core/vendor/preact-htm.js`, `export default function`
-4. **API endpoints:** `/api/panels/{id}` for panel data
-5. **Always check auth** in api.js handlers
-6. **Always handle null data** in ui.js
-7. **Use CSS variables** for colors/fonts — don't hardcode
-8. **Use `cls()`** for scoped class names — never raw class strings
-9. **Return data from filters** — forgetting `return` silently drops the data
-10. **Keep manifests accurate** — the shell relies on them for layout
-11. **Write tests** — co-located test.js using `node:test` + `node:assert`
-12. **Test before deploying** — `npm test` then `npm run smoke`
-
----
-
-## Taking Screenshots for README
-
-Need screenshots of your dashboard for docs or a README? The live dashboard requires Telegram auth and loads external widgets, making headless browser screenshots tricky. Here's the pattern:
-
-1. **Create static pre-rendered HTML** — Pure HTML+CSS with hardcoded realistic data. No JavaScript, no WebSocket, no `fetch()`, no iframes, no Telegram widgets. Just a pixel-perfect replica of the UI with fake data baked in.
-
-2. **Serve via `custom/routes/`** — Create a route like `custom/routes/screenshots.js` that serves a `custom/screenshots/` directory as static files:
-   ```javascript
-   const express = require('express');
-   const path = require('path');
-   module.exports = (app) => {
-     app.use('/screenshots', express.static(
-       path.resolve(__dirname, '..', 'screenshots'),
-       { dotfiles: 'deny' }
-     ));
-   };
-   ```
-
-3. **Screenshot with headless browser** — Use Playwright/Puppeteer with a mobile viewport (e.g. 390×844 for iPhone 14 Pro):
-   ```javascript
-   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
-   const page = await ctx.newPage();
-   await page.goto('https://your-domain/screenshots/landing.html');
-   await page.screenshot({ path: 'landing-mobile.png', fullPage: true });
-   ```
-
-4. **Or screenshot manually** — Open the URL on your phone and take a native screenshot. This gives the most authentic result.
-
-**Why this works:** Avoids all auth issues, widget loading failures, WebView quirks, and font/icon loading race conditions. The static pages use the exact same CSS classes as the real dashboard, so they look identical.
+4. **Always handle null data** in ui.js
+5. **Use CSS variables** for colors/fonts — don't hardcode
+6. **Use `cls()`** for scoped class names — never raw class strings
+7. **Return data from filters** — forgetting `return` silently drops the data
+8. **Keep manifests accurate** — the shell relies on them for layout
+9. **Test before deploying** — `go test ./...`

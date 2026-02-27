@@ -225,13 +225,23 @@ func main() {
 		publicConfig["telegramLink"] = config.TelegramLink
 	}
 
+	// Ensure non-nil slices (avoid null in JSON)
+	panelOrder := config.Panels.Order
+	if panelOrder == nil {
+		panelOrder = []string{}
+	}
+	panelDisabled := config.Panels.Disabled
+	if panelDisabled == nil {
+		panelDisabled = []string{}
+	}
+
 	cfg := &server.Config{
 		RootDir:      rootDir,
 		Workspace:    workspace,
 		Port:         port,
 		Registry:     registry,
-		Order:        config.Panels.Order,
-		Disabled:     config.Panels.Disabled,
+		Order:        panelOrder,
+		Disabled:     panelDisabled,
 		Version:      version,
 		PublicConfig: publicConfig,
 		Routes:       config.Routes,

@@ -6,6 +6,18 @@ Each decision includes what would make us change our mind. Architecture should e
 
 ---
 
+### Why Go instead of Node.js
+
+**Decision:** Rewrite backend from Node.js/Express to Go at v2 (~2575 lines).
+
+**Why:** Single binary deployment — no `node_modules`, no runtime dependency. 76ms cold start vs 520ms. 2.6MB RSS vs 186MB. Go's type system makes the schema architecture (validation, contracts) partially free — the compiler catches what Node.js tests had to catch. Rewriting at v2 costs days; at v6 it would cost months.
+
+**Considered:** Keep Node.js (familiar, but growing pain with memory and startup), Rust (faster but harder for contributors), Deno/Bun (still JS ecosystem problems)
+
+**Would change if:** Never. The rewrite is done and the benefits are permanent.
+
+---
+
 ### Why Preact+HTM over Lit/Vanilla/React
 
 **Decision:** Preact 10 + HTM 3 (~5KB vendored)
@@ -18,23 +30,23 @@ Each decision includes what would make us change our mind. Architecture should e
 
 ---
 
-### Why CJS server / ESM browser
+### Why Go backend / ESM browser
 
-**Decision:** api.js + routes + hooks = CommonJS. ui.js + test.js = ESM.
+**Decision:** Server-side = Go. ui.js = ESM (browser-native).
 
-**Why:** Node Express ecosystem is CJS-native. Browsers are ESM-native. Mixing them creates real bugs. Keeping them separate is intentional.
+**Why:** Go handles all server logic as compiled code. Browsers are ESM-native for ui.js components. Clean separation — no module system confusion.
 
-**Considered:** All-ESM (Node ESM support is still rough for Express plugins), All-CJS (browsers need ESM for imports)
+**Considered:** All-JS (Node ESM/CJS split is painful), WASM (too early)
 
-**Would change if:** Node ecosystem fully migrates to ESM (unlikely before v3).
+**Would change if:** Never — Go + browser ESM is the cleanest split possible.
 
 ---
 
 ### Why panels are vertical slices
 
-**Decision:** Each panel = folder with manifest.json + api.js + ui.js + test.js
+**Decision:** Each panel = folder with manifest.json + ui.js. Data handlers live in `internal/data/` (Go).
 
-**Why:** AI agents can understand one folder completely without loading the whole codebase. Adding a panel = adding a folder, no touching core. Removing = deleting a folder, nothing breaks. Each file has a single clear purpose.
+**Why:** AI agents can understand one folder completely without loading the whole codebase. Adding a panel's UI = adding a folder, no touching core. Each file has a single clear purpose. Data handlers in Go get type safety and compile-time checks.
 
 **Considered:** Monolithic panels file, component library approach
 
@@ -58,7 +70,7 @@ Each decision includes what would make us change our mind. Architecture should e
 
 **Decision:** SQLite as default store, adapter pattern for alternatives.
 
-**Why:** Zero setup — single file, ships with Node via better-sqlite3. Matches "clone and run" philosophy. Adapter pattern means swap to PostgreSQL/MySQL without panel code changes.
+**Why:** Zero setup — single file, excellent Go support via `modernc.org/sqlite` (pure Go, no CGO). Matches "single binary" philosophy. Adapter pattern means swap to PostgreSQL/MySQL without panel code changes.
 
 **Considered:** PostgreSQL (overkill for single-user dashboards), JSON files (no queries), LevelDB (less familiar to AI agents)
 
@@ -68,13 +80,13 @@ Each decision includes what would make us change our mind. Architecture should e
 
 ### Why hooks are all async
 
-**Decision:** Every hook handler is async. Sync functions auto-wrapped.
+**Decision:** Hook engine is Go-native with goroutine-safe execution.
 
-**Why:** One sync hook blocks the entire server event loop. Async by default is safe. Plugin authors don't need to think about it — write sync or async, both work. Filter chains use `await` uniformly.
+**Why:** Go's concurrency model (goroutines + channels) handles hook execution naturally. No event loop blocking concerns. Filter chains run sequentially for predictable ordering; actions can fire concurrently.
 
-**Considered:** Sync-only (simpler but dangerous), mixed sync/async (confusing edge cases)
+**Considered:** JS hook engine via embedded V8 (too complex), Lua scripting (another language to learn)
 
-**Would change if:** Never. This is a safety decision.
+**Would change if:** Never. Go-native hooks are simpler and faster than any embedded scripting approach.
 
 ---
 
@@ -92,7 +104,7 @@ Each decision includes what would make us change our mind. Architecture should e
 
 ### Why validation rules as single source of truth
 
-**Decision:** Panel validation rules in `panels.js` are the seed of `core/schema/` — Clawboard's type system. Each validation check is a discrete function, designed for extraction into schema modules at v3.
+**Decision:** Panel validation rules in `internal/schema/panels.go` are the seed of the schema system — Clawboard's type system. Each validation check is a discrete function, designed for extraction into schema packages at v3.
 
 **Why:** The docs audit found 21 issues, 7 critical. Root cause: documentation and code are separate artifacts describing the same truth. They drift. The solution: make validation rules in code the single source of truth. Multiple consumers (startup validation, doctor CLI, introspection API) read the same rules. Drift becomes architecturally impossible.
 
@@ -103,7 +115,7 @@ Each decision includes what would make us change our mind. Architecture should e
 - Declarative-first manifests (you're building a DSL in JSON — DSLs always grow)
 - Delete docs, code is obvious (doesn't scale past v2's 400 lines to v6/ERP)
 
-**Growth path:** v2 = Elm-quality errors in panels.js. v3 = extract to `core/schema/panels.js` + doctor CLI. v4 = `/api/schema` introspection. v5-v6 = schema modules for roles, events, files. Each version adds a module. No version changes the architecture.
+**Growth path:** v2 = Elm-quality errors in `internal/schema/panels.go`. v3 = extract to `internal/schema/` packages + doctor CLI. v4 = `/api/schema` introspection. v5-v6 = schema packages for roles, events, files. Each version adds a package. No version changes the architecture.
 
 **Would change if:** The validation contract (`{ level, message, fix, ref }`) proves insufficient for a new concern that can't be expressed as "check state, return errors." We don't expect this — the contract is intentionally generic.
 

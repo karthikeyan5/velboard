@@ -1,14 +1,15 @@
 system: clawboard
-version: "2.2.0"
+version: "3.0.0"
 contract_version: "1.0"
 entrypoint: main.go
+language: go
 framework: preact-htm
 vendor: core/vendor/preact-htm.js
 
-# Module system (intentional split — don't "fix" it)
-server_side: commonjs   # api.js, routes, hooks use module.exports
-client_side: esm        # ui.js, test.js use export default
-reason: "Node Express = CJS native. Browser = ESM native."
+# Module system
+server_side: go          # all server logic in Go (internal/)
+client_side: esm         # ui.js uses export default
+reason: "Go = compiled single binary. Browser = ESM native."
 
 panel_contract:
   version: "1.0"
@@ -20,12 +21,9 @@ panel_contract:
   resolution_order: ["core", "custom", "plugins", "overrides"]
   files:
     manifest: manifest.json    # required, json
-    api: api.js                # required, cjs
     ui: ui.js                  # required, esm, preact function component
-    test: test.js              # optional, esm
-  api_signature: "({ hooks, config, auth, panel }) => { endpoint, handler }"
+  data_handlers: internal/data/  # Go handlers serve panel data
   ui_signature: "({ data, error, connected, lastUpdate, api, config, cls }) => VNode"
-  test_signature: "node:test describe/it blocks testing api.js handler (CommonJS)"
   naming:
     folder: lowercase-hyphenated
     component: PascalCase of folder (cpu → CpuPanel)
@@ -40,20 +38,20 @@ panel_contract:
 
 hook_contract:
   version: "1.0"
-  async: true  # all hooks are async, always await
+  engine: internal/hooks/hooks.go  # Go-native
   naming: "{scope}.{target}.{action}"
   scopes:
     core: reserved for core
     panel: panel hooks
     custom: user hooks
     plugin.{name}: plugin hooks
-  filter_safety: "undefined returns are skipped, null is valid"
+  filter_safety: "nil returns are skipped"
 
 route_contract:
   version: "1.0"
-  module: commonjs
-  signature: "(app, { hooks, config, auth }) => void"
-  custom_prefix: /api/custom/
+  type: config-driven  # routes defined in config.json
+  config_key: routes   # "routes": {"/path/": "custom/dir"}
+  serving: static-only
   reserved: ["/api/panels/", "/auth/", "/ws/", "/public/", "/dashboard"]
 
 css_contract:
@@ -76,7 +74,7 @@ error_contract:
 core_guarantees:
   - panels unmounted not hidden (useEffect cleanup guaranteed)
   - schema validation at startup + TEST_MODE only
-  - filter chain skips undefined returns
+  - filter chain skips nil returns
   - position is hint, user panels.order overrides
   - /core/vendor/preact-htm.js always available (vendored)
 
@@ -90,7 +88,7 @@ capabilities:
 extension_points:
   panels: custom/panels/
   overrides: custom/overrides/
-  routes: custom/routes/*.js
-  hooks: custom/hooks.js
+  routes: config.json routes field
+  hooks: internal/hooks/ (Go-native)
   theme: custom/theme/theme.css
   plugins: plugins/
