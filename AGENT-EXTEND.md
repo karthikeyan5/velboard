@@ -21,21 +21,11 @@ Every code change **must** include corresponding documentation updates. No excep
 
 ## Architecture Overview
 
-```
-core/panels/        → Built-in panels (NEVER edit)
-custom/panels/      → Your custom panels (git-ignored, you own this)
-custom/overrides/   → Override core panels (folder name match = override)
-custom/hooks.js     → Register hooks to modify core behavior
-custom/routes/      → Custom Express API endpoints
-custom/theme/       → CSS overrides
-plugins/            → External plugins (git clone)
-```
+See [`architecture.yaml`](./architecture.yaml) for the full structure and [`ARCHITECTURE.md`](./ARCHITECTURE.md) for WHY decisions.
 
-**Override resolution (last wins):**
-1. `core/panels/{id}/` — built-in (always available as fallback)
-2. `custom/panels/{id}/` — user custom panels
-3. `plugins/{name}/panels/{id}/` — plugin panels
-4. `custom/overrides/{id}/` — highest priority, overrides everything
+Extension points: `custom/panels/`, `custom/overrides/`, `custom/hooks.js`, `custom/routes/`, `custom/theme/`, `plugins/`.
+
+**Override resolution (last wins):** core → custom → plugins → overrides.
 
 ---
 
@@ -69,15 +59,7 @@ cp -r core/templates/panel-example custom/panels/my-panel
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Must match folder name. Lowercase, hyphens only. |
-| `name` | string | Display name in dashboard |
-| `contractVersion` | string | Must be `"1.0"` for Preact+HTM panels |
-| `position` | number | Sort order (1=first, 999=last) |
-| `size` | string | `"half"` (50% width, 2-column) or `"full"` (100% width) |
-| `refreshMs` | number | Data refresh interval in milliseconds |
-| `config` | object | Custom config fields (accessible via config.panels.{id}) |
+See [`CONTRACTS.md`](./CONTRACTS.md) for all required fields and validation rules.
 
 ### Step 3: Write api.js (server-side data)
 
@@ -132,12 +114,8 @@ export default function MyPanel({ data, error, connected, lastUpdate, api, confi
 
 ### Rules for ui.js
 
-1. **Import:** Always from `/core/vendor/preact-htm.js` — never from a CDN
-2. **Export:** `export default function` — named export of the component
-3. **Props:** `{ data, error, connected, lastUpdate, api, config, cls }`
-4. **`cls()` helper:** Use `cls('name')` for scoped class names (generates `p-{panelId}-name`)
-5. **Use CSS variables** from core.css for consistent theming (see below)
-6. **Handle null data** — component renders before first data arrives, always check
+See [`CONTRACTS.md`](./CONTRACTS.md) for the full ui.js contract (props, rules, CSS). Key points:
+- Import from `/core/vendor/preact-htm.js`, use `cls()` for scoped classes, handle `data === null`.
 
 ### Step 5: Write test.js (co-located unit test)
 

@@ -132,60 +132,29 @@ Tests are co-located with panels (`core/panels/*/test.js`). Uses Node.js built-i
 
 ## Architecture
 
+See [`architecture.yaml`](./architecture.yaml) for the machine-readable spec, [`ARCHITECTURE.md`](./ARCHITECTURE.md) for WHY decisions.
+
 ```
 clawboard/
-├── core/
-│   ├── server.js          # Express + WebSocket server
-│   ├── lib/               # Auth, hooks, panels, validator
-│   ├── panels/            # 9 built-in panels (Preact+HTM)
-│   │   ├── cpu/
-│   │   │   ├── manifest.json  # { id, name, size, contractVersion }
-│   │   │   ├── api.js         # Server data endpoint
-│   │   │   ├── ui.js          # Preact+HTM component
-│   │   │   └── test.js        # node:test unit tests
-│   │   ├── memory/
-│   │   └── ...
-│   ├── vendor/
-│   │   └── preact-htm.js  # Vendored Preact+HTM bundle
-│   └── public/
-│       ├── shell.html     # Dashboard shell (loads panels dynamically)
-│       ├── landing.html   # Public landing page
-│       ├── core.css       # Theme variables + base styles
-│       └── sw.js          # Service worker (browser only)
-├── custom/                # Your customizations (git-ignored)
-├── plugins/               # External plugins
-├── config.json            # Your config (git-ignored)
-└── setup.sh               # Interactive setup wizard
+├── core/              # Server, libs, panels, public assets
+│   ├── server.js      # Express + WebSocket (entrypoint)
+│   ├── lib/           # Auth, hooks, panels, validator
+│   ├── panels/        # 9 built-in panels (each: manifest + api + ui + test)
+│   ├── vendor/        # Vendored Preact+HTM bundle
+│   └── public/        # Shell, landing, CSS, service worker
+├── custom/            # Your customizations (git-ignored)
+├── plugins/           # External plugins
+├── config.json        # Your config (git-ignored)
+└── setup.sh           # Interactive setup wizard
 ```
 
 ### Panel Contract v1.0
 
-Every panel exports a default Preact+HTM function component:
-
-```js
-import { html } from '/core/vendor/preact-htm.js';
-
-export default function MyPanel({ data, error, connected, lastUpdate, api, config, cls }) {
-  return html`<div class=${cls('wrap')}>...</div>`;
-}
-```
+Each panel is a self-contained folder (`manifest.json` + `api.js` + `ui.js` + optional `test.js`). Panels receive standardized props (`data`, `error`, `connected`, `cls`, etc.), use scoped CSS via `cls()`, and are validated at startup with Elm-quality error messages. See [`CONTRACTS.md`](./CONTRACTS.md) for the full specification.
 
 ## Extending
 
-**Add a panel:**
-```bash
-cp -r core/templates/panel-example custom/panels/my-panel
-# Edit manifest.json + api.js + ui.js
-# Restart. It auto-discovers.
-```
-
-**Add a hook:** Drop `custom/hooks.js`. Server-side, modifies data flow.
-
-**Add a route:** Custom Express routes in `custom/routes/`. Auto-mounted.
-
-**Change themes:** Override CSS variables in `custom/theme/theme.css`.
-
-See [`AGENT-EXTEND.md`](./AGENT-EXTEND.md) for the full guide.
+Copy a template, edit, restart. Panels auto-discover. Hooks modify data flow. Routes auto-mount. Themes override CSS variables. See [`AGENT-EXTEND.md`](./AGENT-EXTEND.md) for the full guide.
 
 ## Security
 
