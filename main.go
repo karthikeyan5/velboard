@@ -19,15 +19,41 @@ import (
 
 const Version = "3.0.0"
 
+type Card struct {
+	Icon  string `json:"icon"`
+	Label string `json:"label"`
+	Text  string `json:"text"`
+}
+
 type AppConfig struct {
+	// Landing page
+	Name         string   `json:"name"`
+	Emoji        string   `json:"emoji"`
+	Subtitle     string   `json:"subtitle"`
+	Role         string   `json:"role"`
+	Quote        string   `json:"quote"`
+	Traits       []string `json:"traits"`
+	Cards        []Card   `json:"cards"`
+	Accent       string   `json:"accent"`
+	AccentName   string   `json:"accentName"`
+	Company      string   `json:"company"`
+	BotUsername  string   `json:"botUsername"`
+	AuthURL      string   `json:"authUrl"`
+	TelegramLink string   `json:"telegramLink"`
+
+	// Auth
 	Auth struct {
 		AllowedUsers []int64 `json:"allowedUsers"`
 	} `json:"auth"`
 	AllowedUsers []int64 `json:"allowedUsers"` // legacy field
-	Panels       struct {
+
+	// Panels
+	Panels struct {
 		Order    []string `json:"order"`
 		Disabled []string `json:"disabled"`
 	} `json:"panels"`
+
+	// Server
 	Server struct {
 		Port int `json:"port"`
 	} `json:"server"`
@@ -152,14 +178,53 @@ func main() {
 		}
 	}
 
+	// Build public config (safe to expose — no tokens, no secrets)
+	publicConfig := map[string]interface{}{}
+	if config.Name != "" {
+		publicConfig["name"] = config.Name
+	}
+	if config.Emoji != "" {
+		publicConfig["emoji"] = config.Emoji
+	}
+	if config.Subtitle != "" {
+		publicConfig["subtitle"] = config.Subtitle
+	}
+	if config.Role != "" {
+		publicConfig["role"] = config.Role
+	}
+	if config.Quote != "" {
+		publicConfig["quote"] = config.Quote
+	}
+	if len(config.Traits) > 0 {
+		publicConfig["traits"] = config.Traits
+	}
+	if len(config.Cards) > 0 {
+		publicConfig["cards"] = config.Cards
+	}
+	if config.Accent != "" {
+		publicConfig["accent"] = config.Accent
+	}
+	if config.AccentName != "" {
+		publicConfig["accentName"] = config.AccentName
+	}
+	if config.Company != "" {
+		publicConfig["company"] = config.Company
+	}
+	if config.BotUsername != "" {
+		publicConfig["botUsername"] = config.BotUsername
+		publicConfig["authUrl"] = config.AuthURL
+		publicConfig["telegramLink"] = config.TelegramLink
+	}
+
 	cfg := &server.Config{
-		RootDir:   rootDir,
-		Workspace: workspace,
-		Port:      port,
-		Registry:  registry,
-		Order:     config.Panels.Order,
-		Disabled:  config.Panels.Disabled,
-		Version:   version,
+		RootDir:      rootDir,
+		Workspace:    workspace,
+		Port:         port,
+		Registry:     registry,
+		Order:        config.Panels.Order,
+		Disabled:     config.Panels.Disabled,
+		Version:      version,
+		PublicConfig: publicConfig,
 	}
 
 	handler := server.NewServer(cfg)

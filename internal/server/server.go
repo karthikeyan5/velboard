@@ -21,12 +21,13 @@ import (
 
 type Config struct {
 	RootDir   string
-	Workspace string
-	Port      int
-	Registry  *panels.Registry
-	Order     []string
-	Disabled  []string
-	Version   string
+	Workspace    string
+	Port         int
+	Registry     *panels.Registry
+	Order        []string
+	Disabled     []string
+	Version      string
+	PublicConfig map[string]interface{} // safe fields for landing page
 }
 
 type rateLimiter struct {
@@ -156,12 +157,14 @@ func NewServer(cfg *Config) http.Handler {
 			http.Error(w, "Too many requests", 429)
 			return
 		}
-		// Return config without auth secrets
-		conf := map[string]interface{}{
-			"panels": map[string]interface{}{
-				"order":    cfg.Order,
-				"disabled": cfg.Disabled,
-			},
+		// Return public config (no auth secrets)
+		conf := make(map[string]interface{})
+		for k, v := range cfg.PublicConfig {
+			conf[k] = v
+		}
+		conf["panels"] = map[string]interface{}{
+			"order":    cfg.Order,
+			"disabled": cfg.Disabled,
 		}
 		writeJSON(w, conf)
 	})
