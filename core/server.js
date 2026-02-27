@@ -280,6 +280,10 @@ app.get('/api/version', (req, res) => {
 });
 
 // Health check
+app.get('/api/mode', (req, res) => {
+  res.json({ testMode: process.env.TEST_MODE === 'true' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: updater.getVersionInfo().version });
 });
@@ -371,6 +375,17 @@ app.get('/auth/telegram/callback', authLimiter, (req, res) => {
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
 
+  res.redirect('/dashboard');
+});
+
+// Dev auto-login (TEST_MODE only)
+app.get('/auth/dev', (req, res) => {
+  if (process.env.TEST_MODE !== 'true') return res.status(404).send('Not available');
+  const userInfo = JSON.stringify({ id: 0, first_name: 'Developer', username: 'dev' });
+  res.cookie('tg_user', userInfo, {
+    signed: true, httpOnly: true, sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, path: '/'
+  });
   res.redirect('/dashboard');
 });
 
