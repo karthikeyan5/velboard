@@ -4,12 +4,13 @@ Clawboard is a panel pack for [Vel](https://github.com/essdee/vel). This roadmap
 
 ---
 
-## v1.0 — Monitoring Dashboard ✅ (Current)
+## v1.0 — Monitoring Dashboard + Browser Relay ✅ (Current)
 
-9 panels for OpenClaw agent monitoring:
+10 panels for OpenClaw agent monitoring + Go server code for browser relay:
 - System: CPU, Memory, Disk, Uptime, Processes
 - OpenClaw: Status, Cron Jobs, Models
 - Claude: Usage quotas with reset timers
+- Browser Relay: Remote browser control via CDP proxy, pairing flow, launcher scripts
 
 ## v1.1 — Enhanced Panels (Planned)
 
