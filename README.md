@@ -1,7 +1,8 @@
 <h1 align="center">🦞 Clawboard</h1>
 
 <p align="center">
-  <strong>The AI-native dashboard. Your agent builds it. The framework makes it work.</strong>
+  <strong>Stop burning tokens on status checks.</strong><br>
+  A real-time dashboard for your AI agent — so you can <em>look</em> instead of <em>ask</em>.
 </p>
 
 <p align="center">
@@ -13,13 +14,7 @@
 
 ---
 
-## What if your AI could build dashboards?
-
-Clawboard is a real-time monitoring dashboard built entirely by an AI agent. Every panel, every WebSocket connection, every layout decision — written by an AI through [OpenClaw](https://github.com/openclaw/openclaw). Not scaffolded. Not templated. **Built from scratch by an agent that understands the framework.**
-
-The 10 panels that ship are just the starting point. A panel is two files: `panel.json` + `ui.js`. Tell your agent what you want to monitor, and it creates a working panel in seconds — the framework guarantees the plumbing works.
-
----
+Every time you ask your agent *"what's my CPU?"* or *"how much quota left?"* — that's tokens spent reading a number. Clawboard gives your [OpenClaw](https://github.com/openclaw/openclaw) agent a live dashboard instead. Open a tab. See everything. Done.
 
 <p align="center">
   <img src="./screenshots/dashboard-mobile.png" alt="Clawboard Dashboard" width="600">
@@ -27,32 +22,32 @@ The 10 panels that ship are just the starting point. A panel is two files: `pane
 
 ---
 
-## 10 Panels, Zero Configuration
+## What You Get
 
 <table>
 <tr>
 <td align="center" width="25%">
 
 ⚡ **CPU**<br>
-<sub>Live load percentage with color-coded bar</sub>
+<sub>Live load with color bar</sub>
 
 </td>
 <td align="center" width="25%">
 
 🧠 **Memory**<br>
-<sub>Used/total GB with percentage bar</sub>
+<sub>Used / total GB</sub>
 
 </td>
 <td align="center" width="25%">
 
 💾 **Disk**<br>
-<sub>Usage per mount point</sub>
+<sub>Usage per mount</sub>
 
 </td>
 <td align="center" width="25%">
 
 ⏱ **Uptime**<br>
-<sub>System uptime + hostname</sub>
+<sub>System uptime + host</sub>
 
 </td>
 </tr>
@@ -60,7 +55,7 @@ The 10 panels that ship are just the starting point. A panel is two files: `pane
 <td align="center">
 
 ⚙️ **Processes**<br>
-<sub>Running, sleeping, total count</sub>
+<sub>Running, sleeping, total</sub>
 
 </td>
 <td align="center">
@@ -72,13 +67,13 @@ The 10 panels that ship are just the starting point. A panel is two files: `pane
 <td align="center">
 
 📊 **Claude Usage**<br>
-<sub>5-hour + 7-day quotas with countdowns</sub>
+<sub>Quota + reset countdown</sub>
 
 </td>
 <td align="center">
 
 📅 **Cron Jobs**<br>
-<sub>List, status, run/enable/disable</sub>
+<sub>List, run, enable/disable</sub>
 
 </td>
 </tr>
@@ -86,33 +81,33 @@ The 10 panels that ship are just the starting point. A panel is two files: `pane
 <td align="center">
 
 🤖 **Models**<br>
-<sub>Primary, fallback, sub-agent routing</sub>
+<sub>Primary + fallback routing</sub>
 
 </td>
 <td align="center">
 
 🌐 **Browser Relay**<br>
-<sub>Relay status, connected tab, messages</sub>
+<sub>Remote browser control</sub>
 
 </td>
 <td align="center" colspan="2">
 
 ✨ **Your panel here**<br>
-<sub>Tell your AI agent what to build</sub>
+<sub>Two files. That's it.</sub>
 
 </td>
 </tr>
 </table>
 
-All panels update via WebSocket. No polling. No refresh.
+Everything updates live over WebSocket. No polling. No refresh.
 
 ---
 
-## Create a Panel in 60 Seconds
+## Two Files, Infinite Possibilities
 
-A panel is two files. That's it.
+A panel is a folder with two files — a description and a UI component. That's the entire contract.
 
-**`panel.json`** — metadata:
+**`panel.json`**
 ```json
 {
   "name": "my-panel",
@@ -122,7 +117,7 @@ A panel is two files. That's it.
 }
 ```
 
-**`ui.js`** — a Preact component:
+**`ui.js`**
 ```javascript
 import { html } from '/js/lib/htm-preact.js';
 
@@ -133,65 +128,64 @@ export default function Panel({ data }) {
 }
 ```
 
-Drop the folder into `panels/`, restart. Done. Your panel is live with WebSocket streaming, layout, and error handling — all handled by the framework.
+Drop it in `panels/`. Restart. It's live — with streaming, layout, error handling, and auth already taken care of.
 
----
+Your agent can create these in seconds. You can create them yourself. Either way, the framework handles everything else.
 
-## These Are Just the Defaults
+**Some ideas:**
 
-The 10 panels that ship with Clawboard are a starting point. The real magic is what comes next.
+- Postgres query performance
+- API response times
+- Docker container status
+- CI/CD pipeline health
+- Smart home sensors
+- Stock portfolio
+- Anything you can pull data for
 
-**Tell your AI agent to build a monitoring panel for:**
-
-- Your PostgreSQL query performance
-- Your API response times
-- Your CI/CD pipeline status
-- Your Docker containers
-- Your smart home sensors
-- Your stock portfolio
-- *Whatever you can imagine*
-
-The framework handles WebSocket streaming, responsive layout, data sources, error boundaries, and live updates. Your agent writes the UI. Nothing else.
-
-**`panel.json` + `ui.js`. That's the entire contract.** Pour your imagination in — the framework takes care of making sure it works.
+The 10 panels that ship are a starting point. Your imagination is the limit.
 
 ---
 
 ## 🌐 Browser Relay
 
-Clawboard includes a built-in browser relay server that lets your AI agent remotely control a browser via Chrome DevTools Protocol. Pair with a 6-character code, and your agent gets full CDP access — no extensions, no port forwarding.
+Your agent can control a real browser remotely. Pair with a 6-character code — your agent gets access. That's it.
 
-📖 **[Full Browser Relay documentation →](./RELAY.md)**
+📖 **[How it works →](./RELAY.md)**
+
+---
+
+## Why It Just Works
+
+Clawboard is built on **[Vel](https://github.com/essdee/vel)**, an AI-native Go framework designed so that agents can build things that don't break.
+
+- **Single Go binary** — no Node.js, no Python, no runtime deps
+- **Framework-guaranteed plumbing** — WebSocket streaming, auth, layout, error boundaries are all handled. Your agent only writes the parts that matter.
+- **Guardrails, not guidelines** — The framework doesn't *suggest* how to do things. It *enforces* correctness. AI writes two files, and it works. Every time.
+
+This means you can let your agent build panels, and you don't have to worry about whether it wired up the WebSocket correctly or forgot error handling. It can't get that wrong — the framework won't let it.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Install into your Vel apps directory
+# Clone into your Vel apps directory
 cd your-vel-app/apps/
 git clone https://github.com/karthikeyan5/clawboard.git
 
-# Build (required — Clawboard has Go server code)
-cd /path/to/vel && ./vel build
-
-# Run
-./vel start
+# Build and run
+cd /path/to/vel
+./vel build && ./vel start
 ```
-
----
-
-## Built on Vel
-
-Clawboard is a **[Vel](https://github.com/essdee/vel)** app — the AI-native Go web framework where AI agents are the primary developers.
-
-- **Single Go binary** — no Node.js, no Python, no runtime dependencies
-- **Manifest-driven** — JSON declarations, framework-guaranteed correctness
-- **WebSocket-first** — real-time by default, not bolted on
-- **AI writes it, framework validates it** — humans review business logic, not plumbing
 
 ---
 
 ## License
 
 [MIT](./LICENSE)
+
+---
+
+<p align="center">
+  <sub>Built for <a href="https://github.com/openclaw/openclaw">OpenClaw</a> agents. Made with 🦞 by an AI and its humans.</sub>
+</p>
