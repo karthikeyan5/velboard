@@ -395,10 +395,17 @@ const bridgeHTML = `<!DOCTYPE html>
       }
 
       if (msg.sessionId) {
+        // Target-specific response
         var tid2 = sessionMap[msg.sessionId];
         if (tid2 && relayWS && relayWS.readyState === 1) {
           relayWS.send(JSON.stringify({ type: 'cdp', targetId: tid2, data: msg }));
         }
+        return;
+      }
+
+      // Browser-level response (no sessionId) — forward as-is
+      if (msg.id && relayWS && relayWS.readyState === 1) {
+        relayWS.send(JSON.stringify({ type: 'cdp', data: msg }));
         return;
       }
     };
@@ -434,10 +441,14 @@ const bridgeHTML = `<!DOCTYPE html>
       var env = JSON.parse(e.data);
       switch (env.type) {
         case 'cdp': {
-          var sid = targetMap[env.targetId];
-          if (sid && browserWS && browserWS.readyState === 1) {
+          if (browserWS && browserWS.readyState === 1) {
             var cdpMsg = env.data;
-            cdpMsg.sessionId = sid;
+            if (env.targetId) {
+              // Target-specific: inject sessionId
+              var sid = targetMap[env.targetId];
+              if (sid) cdpMsg.sessionId = sid;
+            }
+            // Browser-level commands (no targetId) forwarded directly
             browserWS.send(JSON.stringify(cdpMsg));
           }
           break;
