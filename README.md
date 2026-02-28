@@ -4,6 +4,8 @@
 
 <h1 align="center">🦞 Clawboard</h1>
 
+> ⚠️ **Pre-release.** Clawboard depends on Vel which has not reached v1.0. Expect breaking changes between versions.
+
 <p align="center">
   <strong>Real-time dashboard + browser relay for OpenClaw agents.</strong>
 </p>
