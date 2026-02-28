@@ -15,9 +15,9 @@
 
 ## What if your AI could build dashboards?
 
-Clawboard is a real-time monitoring dashboard built entirely by an AI agent. Every panel, every layout decision, every line of code — written by Claude through OpenClaw. **Your AI agent built this entire dashboard. Yours can build anything.**
+Clawboard is a real-time monitoring dashboard built entirely by an AI agent. Every panel, every WebSocket connection, every layout decision — written by an AI through [OpenClaw](https://github.com/openclaw/openclaw). Not scaffolded. Not templated. **Built from scratch by an agent that understands the framework.**
 
-The 10 panels that ship are just the starting point. The real power is the framework: tell your agent what you want to monitor, and it creates a working panel in seconds.
+The 10 panels that ship are just the starting point. A panel is two files: `panel.json` + `ui.js`. Tell your agent what you want to monitor, and it creates a working panel in seconds — the framework guarantees the plumbing works.
 
 ---
 
@@ -141,9 +141,19 @@ Drop the folder into `panels/`, restart. Done. Your panel is live with WebSocket
 
 The 10 panels that ship with Clawboard are a starting point. The real magic is what comes next.
 
-**Tell your AI agent to build a monitoring panel for your database, your API, your CI pipeline, your smart home — whatever you can imagine.** The framework handles WebSocket streaming, layout, data sources, error handling. You just write the UI.
+**Tell your AI agent to build a monitoring panel for:**
 
-`panel.json` + `ui.js`. Pour your imagination in. The framework takes care of making sure it works.
+- Your PostgreSQL query performance
+- Your API response times
+- Your CI/CD pipeline status
+- Your Docker containers
+- Your smart home sensors
+- Your stock portfolio
+- *Whatever you can imagine*
+
+The framework handles WebSocket streaming, responsive layout, data sources, error boundaries, and live updates. Your agent writes the UI. Nothing else.
+
+**`panel.json` + `ui.js`. That's the entire contract.** Pour your imagination in — the framework takes care of making sure it works.
 
 ---
 
@@ -173,7 +183,12 @@ cd /path/to/vel && ./vel build
 
 ## Built on Vel
 
-Clawboard is a **[Vel](https://github.com/essdee/vel)** app — the AI-native web framework. Single Go binary. Manifest-driven panels. WebSocket-first. Your app runs before they finish reading this.
+Clawboard is a **[Vel](https://github.com/essdee/vel)** app — the AI-native Go web framework where AI agents are the primary developers.
+
+- **Single Go binary** — no Node.js, no Python, no runtime dependencies
+- **Manifest-driven** — JSON declarations, framework-guaranteed correctness
+- **WebSocket-first** — real-time by default, not bolted on
+- **AI writes it, framework validates it** — humans review business logic, not plumbing
 
 ---
 
