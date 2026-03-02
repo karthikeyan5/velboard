@@ -1,6 +1,16 @@
 # ⚡ Velboard — Agent Setup Guide
 
-**For AI agents:** Step-by-step instructions to set up Velboard from scratch, including the Vel framework.
+**For AI agents:** Step-by-step instructions to add Velboard monitoring panels to a Vel dashboard.
+
+---
+
+> ## ⚠️ Prerequisites
+>
+> **Complete the [Vel Framework Setup](https://github.com/essdee/vel/blob/main/AGENT-SETUP.md) first.**
+>
+> Follow that guide through **Step 5 (test locally)** — it covers Go installation, cloning Vel, creating `config.json`, setting up `.env`, systemd, reverse proxy, and Telegram bot setup.
+>
+> **Come back here after your Vel instance is running.**
 
 ---
 
@@ -8,84 +18,24 @@
 
 Before starting, ask:
 
-1. **Server domain** — What domain will this run on? (e.g., `dashboard.example.com`)
-2. **Telegram Bot Token** — Do you have a Telegram bot token? (needed for auth)
-3. **Telegram User IDs** — Which Telegram user IDs should have dashboard access?
-4. **Claude Max?** — Do they use Claude CLI with a Max subscription? (for usage panel)
-5. **Port** — What port to run on? (default: `3700`)
-6. **Install directory** — Where to install? (default: `/opt/vel`)
+1. **Claude Max?** — Do they use Claude CLI with a Max subscription? (for the usage panel)
+2. **Which panels?** — Default panel order: `["claude-usage", "cpu", "memory", "disk", "uptime", "processes", "openclaw-status", "sessions", "crons", "models"]`
 
 ---
 
-## Step 1 — Install the Vel framework
-
-Vel is the dashboard framework that Velboard's panels plug into.
-
-```bash
-# Clone Vel
-git clone https://github.com/essdee/vel.git <install-dir>
-cd <install-dir>
-
-# Install Go (if not present)
-go version || {
-  curl -LO https://go.dev/dl/go1.24.1.linux-amd64.tar.gz
-  sudo tar -C /usr/local -xzf go1.24.1.linux-amd64.tar.gz
-  export PATH=$PATH:/usr/local/go/bin
-  echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-}
-
-# Create config from example
-cp config.example.json config.json
-```
-
-Edit `config.json` with the user's details:
-
-```json
-{
-  "name": "<agent-name>",
-  "emoji": "⚡",
-  "role": "AI Agent",
-  "quote": "Always on. Always ready.",
-  "traits": ["Reliable", "Fast"],
-  "accent": "#c9a84c",
-  "botUsername": "<bot-username>",
-  "authUrl": "https://<domain>/auth/telegram/callback",
-  "telegramLink": "https://t.me/<bot-username>",
-  "allowedUsers": [<telegram-user-ids>],
-  "port": <port>,
-  "panels": {
-    "order": ["claude-usage", "cpu", "memory", "disk", "uptime", "processes", "openclaw-status", "sessions", "crons", "models"],
-    "disabled": []
-  }
-}
-```
-
-Set up the bot token and fetch the bot username (don't guess it):
-
-```bash
-echo "BOT_TOKEN=<token>" > <install-dir>/.env
-
-# Get the actual bot username from Telegram API
-BOT_USERNAME=$(curl -s "https://api.telegram.org/bot<token>/getMe" | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['username'])")
-echo "Bot username: $BOT_USERNAME"
-```
-
-Use `$BOT_USERNAME` in the config below — do NOT guess the username format.
-
----
-
-## Step 2 — Install Velboard panels
+## Step 1 — Install Velboard
 
 ```bash
 cd <install-dir>/apps/
 git clone https://github.com/karthikeyan5/velboard.git
 ```
 
-Build Vel with Velboard included:
+Rebuild Vel to include Velboard:
 
 ```bash
 cd <install-dir>
 go run . build --mode=bypass
+go build -o vel .
 ```
 
 Verify panels are discovered:
@@ -94,6 +44,27 @@ Verify panels are discovered:
 cd <install-dir>
 ./vel
 # Look for "App Report" showing velboard with panels loaded
+```
+
+---
+
+## Step 2 — Configure panels
+
+Update `config.json` to set the panel order:
+
+```json
+{
+  "panels": {
+    "order": ["claude-usage", "cpu", "memory", "disk", "uptime", "processes", "openclaw-status", "sessions", "crons", "models"],
+    "disabled": []
+  }
+}
+```
+
+**Important:** The OpenClaw panels (status, crons, models) need `openclaw` CLI in the service's PATH. Either add it to the systemd `Environment=PATH=...` or create a symlink:
+
+```bash
+sudo ln -sf $(which openclaw) /usr/local/bin/openclaw
 ```
 
 ---
@@ -117,193 +88,25 @@ If the user uses Claude Max:
    CLAUDE_USAGE_OUTPUT=~/.openclaw/workspace/claude-usage.json bash <install-dir>/apps/velboard/services/claude-usage-monitor/scripts/claude-usage-poll.sh
    ```
 
-4. The claude-usage panel reads from `~/.openclaw/workspace/claude-usage.json`. If the file doesn't exist at startup, the panel will show "waiting for data" until the monitor runs and creates it.
+4. The claude-usage panel reads from `~/.openclaw/workspace/claude-usage.json`. If the file doesn't exist at startup, the panel will show "waiting for data" until the monitor runs.
 
 ---
 
-## Step 3b — Sessions panel setup
+## Step 4 — Sessions panel setup
 
-The sessions panel needs a script to generate summary data from OpenClaw's session store. Set up a system cron to run it every minute:
+The sessions panel needs a script to generate summary data from OpenClaw's session store. Set up a cron to run it every minute:
 
 ```bash
 # Run it once to create the initial file
 bash <install-dir>/apps/velboard/data/sessions-gen.sh
 
-# Add to system crontab
+# Add to crontab
 (crontab -l 2>/dev/null; echo "* * * * * bash <install-dir>/apps/velboard/data/sessions-gen.sh") | crontab -
 ```
 
 ---
 
-## Step 4 — systemd service
-
-Create `/etc/systemd/system/vel.service`:
-
-```ini
-[Unit]
-Description=Vel Dashboard
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=<install-dir>
-ExecStart=<install-dir>/vel
-EnvironmentFile=<install-dir>/.env
-Restart=always
-RestartSec=5
-User=<username>
-Environment=HOME=/home/<username>  # REQUIRED: systemd doesn't always set HOME correctly; ~ paths in app.json depend on this
-Environment=WORKSPACE=/home/<username>/.openclaw/workspace  # REQUIRED: panels read data files from this directory
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**Important:** The OpenClaw panels (status, crons, models) need `openclaw` CLI in the service's PATH. Find where it's installed and add it:
-
-```bash
-# Find openclaw
-OPENCLAW_BIN=$(dirname $(which openclaw))
-
-# Add to the service Environment (edit the file above):
-# Environment=PATH=<openclaw-bin-dir>:/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-```
-
-Or create a symlink:
-```bash
-sudo ln -sf $(which openclaw) /usr/local/bin/openclaw
-```
-
-Enable and start:
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable vel
-sudo systemctl start vel
-```
-
-Verify:
-
-```bash
-curl -s http://localhost:<port>/api/panels | python3 -m json.tool
-```
-
----
-
-## Step 5 — Expose to the internet
-
-**⏸️ STOP — Ask the user how they want to expose the dashboard before proceeding.**
-
-> How would you like to expose the dashboard to the internet?
->
-> 1. **Nginx + Let's Encrypt** — if you already have nginx installed
-> 2. **Caddy** — automatic HTTPS, simpler config
-> 3. **Cloudflare Tunnel** — no open ports needed, zero-trust
-> 4. **Direct / I already have a reverse proxy** — just tell me the port
-> 5. **I don't know, guide me** — I'll check your setup and recommend the simplest option
-
-**Wait for the user's answer before proceeding.** If they pick option 5, check what's already installed (`which nginx`, `which caddy`, `which cloudflared`) and recommend **Caddy** for simplicity if nothing is installed.
-
----
-
-### Option A: Nginx + Let's Encrypt
-
-```bash
-sudo apt install -y nginx certbot python3-certbot-nginx
-```
-
-Create `/etc/nginx/sites-available/vel`:
-
-```nginx
-server {
-    listen 80;
-    server_name <domain>;
-
-    location / {
-        proxy_pass http://127.0.0.1:<port>;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-```
-
-```bash
-sudo ln -sf /etc/nginx/sites-available/vel /etc/nginx/sites-enabled/
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d <domain>
-```
-
-### Option B: Caddy
-
-```bash
-sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
-sudo apt update && sudo apt install -y caddy
-```
-
-Add to `/etc/caddy/Caddyfile`:
-
-```
-<domain> {
-    reverse_proxy localhost:<port>
-}
-```
-
-Caddy handles HTTPS automatically. Restart:
-
-```bash
-sudo systemctl restart caddy
-```
-
-### Option C: Cloudflare Tunnel
-
-See [Cloudflare Tunnel docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/). Create a tunnel pointing to `http://localhost:<port>`.
-
-### Option D: Direct / Existing reverse proxy
-
-Vel runs on `http://localhost:<port>`. Point your existing reverse proxy there.
-
-> **⚠️ WebSocket support is required** for all reverse proxy options. Make sure your proxy forwards `Upgrade` and `Connection` headers — without this, live dashboard updates will fail.
-
----
-
-## Step 6 — Telegram Bot Setup
-
-### A) Set the Menu Button (automated)
-
-Run this to add a "📊 Dashboard" button to the bot's chat menu:
-
-```bash
-curl -s -X POST "https://api.telegram.org/bot<BOT_TOKEN>/setChatMenuButton" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "menu_button": {
-      "type": "web_app",
-      "text": "📊 Dashboard",
-      "web_app": {"url": "https://<domain>/dashboard"}
-    }
-  }'
-```
-
-### B) Set the Login Widget Domain (manual — no API)
-
-**⏸️ Ask the user to do this step manually and confirm when done:**
-
-> Open **@BotFather** → `/mybots` → select your bot → **Bot Settings** → **Domain** → enter: `<domain>`
->
-> This is required for the Telegram Login Widget to work. There is no API for this — it must be done in BotFather.
->
-> Let me know when you've done this.
-
----
-
-## Step 7 — Personalize (optional)
+## Step 5 — Personalize (optional)
 
 Edit `config.json` to customize the landing page:
 
@@ -320,18 +123,30 @@ Edit `config.json` to customize the landing page:
 
 ---
 
+## Step 6 — Restart and verify
+
+```bash
+sudo systemctl restart vel
+curl -s http://localhost:<port>/api/panels | python3 -m json.tool
+```
+
+---
+
 ## Updating
 
 ```bash
 cd <install-dir>/apps/velboard
 git pull
+cd <install-dir>
+go run . build --mode=bypass
+go build -o vel .
 sudo systemctl restart vel
 ```
 
 ## Troubleshooting
 
-- **Panels not showing** → check `apps/velboard/panels/` exists and has manifest.json files
-- **Claude usage empty** → verify `claude-usage.json` exists in workspace
-- **OpenClaw status empty** → verify `openclaw` CLI is in PATH
-- **Auth not working** → verify BOT_TOKEN is set and Telegram webhook domain matches
-- **Data sources "waiting for file"** → the systemd `User=` must match the user whose home directory has `~/.openclaw/`. If the service runs as `root` but files are under `/home/claw/`, tilde expansion points to `/root/` instead. Fix: set `User=` to the correct user
+- **Panels not showing** → Check `apps/velboard/panels/` exists and has `manifest.json` files
+- **Claude usage empty** → Verify `claude-usage.json` exists in workspace
+- **OpenClaw status empty** → Verify `openclaw` CLI is in PATH for the systemd service
+- **Data sources "waiting for file"** → The systemd `User=` must match the user whose home directory has `~/.openclaw/`. If the service runs as `root` but files are under `/home/claw/`, tilde expansion points to `/root/` instead. Fix: set `User=` to the correct user
+- **Sessions panel empty** → Verify the `sessions-gen.sh` cron is running: `crontab -l`
