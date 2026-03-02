@@ -5,43 +5,45 @@
 <h1 align="center">⚡ Velboard</h1>
 
 <p align="center">
-  <strong>Real-time dashboard for OpenClaw agents.</strong>
+  <strong>The dashboard that builds itself.</strong>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/version-1.0.0-c9a84c?style=flat-square" alt="Version">
   <img src="https://img.shields.io/badge/built_with-Vel_⚡-ff6b35?style=flat-square" alt="Built with Vel">
-  <img src="https://img.shields.io/badge/panels-9-00ADD8?style=flat-square" alt="Panels">
+  <img src="https://img.shields.io/badge/panels-11-00ADD8?style=flat-square" alt="Panels">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
 </p>
 
 <p align="center">
-  <sub>A <a href="https://github.com/essdee/vel">Vel</a> plugin — 9 panels for monitoring your OpenClaw agent.</sub>
+  <sub>A <a href="https://github.com/essdee/vel">Vel</a> app — built by an AI agent, for AI agents.</sub>
 </p>
 
 ---
 
-## What is this?
+## The dashboard that builds itself
 
-Velboard is a **panel pack** for [Vel](https://github.com/essdee/vel) that turns it into a full monitoring dashboard for [OpenClaw](https://github.com/openclaw/openclaw) AI agents.
+Every other dashboard was built by a human developer who decided what panels you need. Velboard was built by an AI agent, on a framework designed for AI agents. The thing that built it can keep building it. For you. Based on what you actually need.
 
-Stop burning tokens asking your agent routine questions. Open a tab. See everything.
+You don't need to know how it works. You just need to know what you want to see. Your agent handles the rest, and the framework makes sure it can't mess it up.
 
-## Panels
+## What you get on day one
 
-| Icon | Panel | Size | What it shows |
-|------|-------|------|---------------|
-| ⚡ | **CPU** | half | Load %, core count, color-coded bar |
-| 🧠 | **Memory** | half | Used/total GB, percentage bar |
-| 💾 | **Disk** | half | Usage per mount point |
-| ⏱ | **Uptime** | half | System uptime + hostname |
-| ⚙️ | **Processes** | half | Running/sleeping/total |
-| 🔧 | **OpenClaw Status** | half | Version, sessions, channel |
-| 📊 | **Claude Usage** | full | 5-hour + 7-day quotas with reset countdowns |
-| 📅 | **Cron Jobs** | full | List, status, run/enable/disable buttons |
-| 🤖 | **Models** | full | Primary, fallback, sub-agent routing |
+| Panel | What it shows |
+|-------|---------------|
+| **CPU** | Load %, core count, color-coded bar |
+| **Memory** | Used/total GB, percentage bar |
+| **Disk** | Usage per mount point |
+| **Uptime** | System uptime + hostname |
+| **Processes** | Running/sleeping/total |
+| **OpenClaw Status** | Version, sessions, channel |
+| **Claude Usage** | 5-hour + 7-day quotas with reset countdowns |
+| **Cron Jobs** | List, status, run/enable/disable buttons |
+| **Models** | Primary, fallback, sub-agent routing |
+| **Sessions** | Active agent sessions |
+| **Browser Relay** | VelBridge connection status |
 
-All panels update every 2 seconds via WebSocket. No polling.
+All panels update every 2 seconds. No polling. Real-time WebSocket.
 
 ## Screenshots
 
@@ -52,81 +54,44 @@ All panels update every 2 seconds via WebSocket. No polling.
 </tr>
 </table>
 
+## Don't wait for PRs
+
+Every dashboard has the same bottleneck: you need a panel, you open an issue, maybe someone builds it. Maybe in a week. Maybe never.
+
+Need a panel that doesn't exist? Your agent builds it. Right now. Two files — a manifest and a component — and the framework validates it at build time. No breaking other panels. No approval queue. Done.
+
+## The last dashboard you'll ever install
+
+See something you like on someone else's dashboard? Screenshot it, send it to your agent, you have it.
+
+That's not a feature request. That's a Tuesday.
+
 ## Install
 
-### Prerequisites
-
 You need [Vel](https://github.com/essdee/vel) installed and running.
-
-### As an app
 
 ```bash
 cd your-vel-app/apps/
 git clone https://github.com/karthikeyan5/velboard.git
 ```
 
-Restart Vel. All 9 panels auto-discover.
+Restart Vel. All panels auto-discover.
 
-### Or copy panels individually
+### For AI Agents
 
-```bash
-# Copy just the panels you want
-cp -r velboard/panels/cpu your-vel-app/apps/velboard/panels/
-cp -r velboard/panels/memory your-vel-app/apps/velboard/panels/
-```
+Send your agent:
 
-## Configuration
-
-In your Vel `config.json`, set the panel order:
-
-```json
-{
-  "panels": {
-    "order": ["claude-usage", "cpu", "memory", "disk", "uptime", "processes", "openclaw-status", "sessions", "crons", "models"],
-    "disabled": []
-  }
-}
-```
-
-### Claude Usage Panel
-
-Requires the Claude usage monitor. See [`AGENT-SETUP.md`](./AGENT-SETUP.md) for setup instructions.
-
-### OpenClaw Status Panel
-
-Requires `openclaw` CLI in PATH. Shows version, active sessions, memory, and channel info.
-
-## Panel Structure
-
-Each panel is a self-contained folder:
-
-```
-panels/cpu/
-├── manifest.json    # Panel metadata (id, name, version, size)
-└── ui.js            # Preact+HTM component
-```
-
-Panels follow the [Vel panel contract](https://github.com/essdee/vel/blob/main/CONTRACTS.md). Data is provided by Vel's built-in system metrics and WebSocket broadcast.
-
-## For AI Agents
-
-Send your OpenClaw agent:
-
-> Install Velboard panels from https://github.com/karthikeyan5/velboard
+> Install Velboard from https://github.com/karthikeyan5/velboard
 
 It reads [`AGENT-SETUP.md`](./AGENT-SETUP.md) and handles everything.
 
-## Roadmap
-
-See [`ROADMAP.md`](./ROADMAP.md) for planned panels and features.
-
 ## See Also
 
-- **[VelBridge](https://github.com/karthikeyan5/velbridge)** — Give your agent browser control. Pair with a code, watch it work. Another Vel app.
+- **[VelBridge](https://github.com/karthikeyan5/velbridge)** — Your agent can use your browser. Pair with a code, watch it work. Another Vel app.
 
-## Framework
+## Built on Vel
 
-Velboard is built on **[Vel](https://github.com/essdee/vel)** — an AI-native Go framework for real-time web apps. For framework docs (architecture, contracts, hooks, apps, testing), see the [Vel repo](https://github.com/essdee/vel).
+Velboard is a **[Vel](https://github.com/essdee/vel)** app. Vel is an AI-native Go framework — your agent builds, the framework guarantees. For framework docs, see the [Vel repo](https://github.com/essdee/vel).
 
 ## License
 
