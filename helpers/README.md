@@ -1,4 +1,4 @@
-# Browser CDP Helper — Clawboard
+# Browser CDP Helper — Velboard
 
 Python library for AI agents to control browsers via the OpenClaw relay CDP proxy.
 
@@ -6,7 +6,7 @@ Python library for AI agents to control browsers via the OpenClaw relay CDP prox
 
 ```python
 import sys
-sys.path.insert(0, '/tmp/clawboard/helpers')
+sys.path.insert(0, '/tmp/velboard/helpers')
 from browser import Browser
 
 b = Browser(relay_token="YOUR_TOKEN", server="http://localhost:3700")

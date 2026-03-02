@@ -1,6 +1,6 @@
-# Clawboard Roadmap
+# Velboard Roadmap
 
-Clawboard is a panel pack for [Vel](https://github.com/essdee/vel). This roadmap covers **panels and OpenClaw-specific features**. For framework features (store, pages, roles, events), see the [Vel Roadmap](https://github.com/essdee/vel/blob/main/ROADMAP.md).
+Velboard is a panel pack for [Vel](https://github.com/essdee/vel). This roadmap covers **panels and OpenClaw-specific features**. For framework features (store, pages, roles, events), see the [Vel Roadmap](https://github.com/essdee/vel/blob/main/ROADMAP.md).
 
 ---
 

@@ -1,11 +1,14 @@
 {
-  "name": "clawboard",
+  "name": "velboard",
   "version": "1.0.0",
-  "title": "Clawboard",
+  "title": "Velboard",
   "description": "Real-time monitoring dashboard for OpenClaw agents",
   "panels": "panels",
   "routes": {
-    "/relay/connect": {"type": "page", "dir": "pages/relay-connect"}
+    "/relay/connect": {
+      "type": "page",
+      "dir": "pages/relay-connect"
+    }
   },
   "data_sources": {
     "claude-usage": {
@@ -18,5 +21,17 @@
       "path": "~/.openclaw/workspace/sessions-summary.json",
       "interval": "30s"
     }
-  }
+  },
+  "panelOrder": [
+    "claude-usage",
+    "cpu",
+    "memory",
+    "disk",
+    "uptime",
+    "processes",
+    "openclaw-status",
+    "sessions",
+    "crons",
+    "models"
+  ]
 }
