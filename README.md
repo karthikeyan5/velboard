@@ -120,6 +120,10 @@ It reads [`AGENT-SETUP.md`](./AGENT-SETUP.md) and handles everything.
 
 See [`ROADMAP.md`](./ROADMAP.md) for planned panels and features.
 
+## See Also
+
+- **[VelBrowser](https://github.com/karthikeyan5/velbrowser)** — Give your agent browser control. Pair with a code, watch it work. Another Vel app.
+
 ## Framework
 
 Velboard is built on **[Vel](https://github.com/essdee/vel)** — an AI-native Go framework for real-time web apps. For framework docs (architecture, contracts, hooks, apps, testing), see the [Vel repo](https://github.com/essdee/vel).
