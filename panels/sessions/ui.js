@@ -34,7 +34,10 @@ export default function SessionsPanel({ data, error, connected, cls }) {
   const [showAll, setShowAll] = useState(false);
 
   if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
-  if (!data || data.error) return html`<div style="color:var(--text-dim);font-size:12px">No session data</div>`;
+  if (!data || data.error) return html`<div style="color:var(--text-dim);font-size:12px;line-height:1.5">
+    Sessions data not found — run <code style="background:rgba(255,255,255,0.08);padding:1px 4px;border-radius:3px;font-size:11px">sessions-gen.sh</code> and add it to crontab.
+    See Velboard <strong>AGENT-SETUP.md Step 4</strong>.
+  </div>`;
 
   const { total, active, byKind, byModel, recent } = data;
   const shown = showAll ? recent : recent.filter(s => s.active);
