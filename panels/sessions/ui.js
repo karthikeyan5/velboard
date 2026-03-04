@@ -24,6 +24,12 @@ const kindColor = {
 
 const kindIcon = { main: '●', cron: '⏱', spawn: '⚡', dm: '💬', other: '○' };
 
+const ctxBarColor = (pct) => {
+  if (pct > 80) return 'var(--red)';
+  if (pct > 50) return '#f0ad4e';
+  return 'var(--green)';
+};
+
 export default function SessionsPanel({ data, error, connected, cls }) {
   const [showAll, setShowAll] = useState(false);
 
@@ -61,16 +67,36 @@ export default function SessionsPanel({ data, error, connected, cls }) {
       </div>
 
       <!-- Session list -->
-      ${displayList.map(s => html`
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.03);opacity:${s.active ? 1 : 0.5}">
-          <span style="color:${kindColor[s.kind] || 'var(--text-dim)'};font-size:10px;flex-shrink:0;width:14px;text-align:center" title=${s.kind}>${kindIcon[s.kind] || '○'}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.label}</div>
+      ${displayList.map(s => {
+        const pct = s.contextPct || 0;
+        const hasCtx = s.usedTokens > 0 || s.totalTokens > 0;
+        const maxCtx = s.maxContextTokens || 200000;
+        const used = s.usedTokens || s.totalTokens || 0;
+        return html`
+          <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.03);opacity:${s.active ? 1 : 0.5}">
+            <!-- Top row: icon, label, tokens, age -->
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="color:${kindColor[s.kind] || 'var(--text-dim)'};font-size:10px;flex-shrink:0;width:14px;text-align:center" title=${s.kind}>${kindIcon[s.kind] || '○'}</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.label}</div>
+              </div>
+              <span style="font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0">${fmtTokens(s.totalTokens)} tok</span>
+              <span style="font-size:9px;color:${s.active ? 'var(--green)' : 'var(--text-dim)'};font-family:'JetBrains Mono',monospace;flex-shrink:0;width:28px;text-align:right">${fmtAge(s.ageMins)}</span>
+            </div>
+            <!-- Context bar -->
+            ${hasCtx && html`
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding-left:22px">
+                <div style="flex:1;height:3px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden">
+                  <div style="height:100%;width:${Math.min(pct, 100)}%;background:${ctxBarColor(pct)};border-radius:2px;transition:width 0.3s"></div>
+                </div>
+                <span style="font-size:8px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0;min-width:60px;text-align:right">
+                  ${fmtTokens(used)}/${fmtTokens(maxCtx)} (${Math.round(pct)}%)
+                </span>
+              </div>
+            `}
           </div>
-          <span style="font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;flex-shrink:0">${fmtTokens(s.totalTokens)} tok</span>
-          <span style="font-size:9px;color:${s.active ? 'var(--green)' : 'var(--text-dim)'};font-family:'JetBrains Mono',monospace;flex-shrink:0;width:28px;text-align:right">${fmtAge(s.ageMins)}</span>
-        </div>
-      `)}
+        `;
+      })}
 
       <!-- Kind summary -->
       <div style="display:flex;gap:12px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)">

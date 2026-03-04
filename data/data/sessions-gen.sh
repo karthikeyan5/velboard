@@ -5,10 +5,8 @@ OUTPUT_FILE="$HOME/.openclaw/workspace/sessions-summary.json"
 python3 << 'PYEOF'
 import json, time, sys
 
-import os
-home = os.path.expanduser("~")
-SESSIONS_FILE = os.path.join(home, ".openclaw/agents/main/sessions/sessions.json")
-OUTPUT_FILE = os.path.join(home, ".openclaw/workspace/sessions-summary.json")
+SESSIONS_FILE = "/home/claw/.openclaw/agents/main/sessions/sessions.json"
+OUTPUT_FILE = "/home/claw/.openclaw/workspace/sessions-summary.json"
 
 try:
     with open(SESSIONS_FILE) as f:
@@ -52,20 +50,17 @@ for k, v in d.items():
             parts = k.split(":")
             label = parts[-1][:16] if len(parts) > 1 else k[:16]
 
-    max_ctx = v.get("contextTokens", 200000)  # contextTokens = max window size
+    ctx = v.get("contextTokens", 0)
     inp = v.get("inputTokens", 0)
     out = v.get("outputTokens", 0)
-    total = v.get("totalTokens", 0)  # totalTokens = actual used context
-    ctx_pct = round((total / max_ctx) * 100, 1) if max_ctx > 0 and total > 0 else 0
+    total = v.get("totalTokens", 0)
 
     sessions.append({
         "key": k[:80],
         "kind": kind,
         "label": label[:50],
         "model": short_model,
-        "usedTokens": total,
-        "maxContextTokens": max_ctx,
-        "contextPct": ctx_pct,
+        "contextTokens": ctx,
         "inputTokens": inp,
         "outputTokens": out,
         "totalTokens": total,
