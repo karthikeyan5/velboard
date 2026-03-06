@@ -2,7 +2,7 @@
 
 ## Sessions Panel
 - [ ] Sub-agent progress tracking (task description, runtime, status)
-- [ ] Show sub-agent label/task instead of just session UUID
+- [x] Show sub-agent label/task instead of just session UUID (2026-03-06)
 - [ ] Session search/filter
 
 ## General
