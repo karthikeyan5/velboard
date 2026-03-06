@@ -1,8 +1,8 @@
 # Velboard — Future Improvements
 
 ## Sessions Panel
-- [ ] Show running sub-agents (currently ephemeral, not in sessions.json — needs live OpenClaw session API query)
 - [ ] Sub-agent progress tracking (task description, runtime, status)
+- [ ] Show sub-agent label/task instead of just session UUID
 - [ ] Session search/filter
 
 ## General
