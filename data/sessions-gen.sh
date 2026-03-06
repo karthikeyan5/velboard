@@ -71,6 +71,38 @@ for k, v in d.items():
             label = "Main Session"
         elif ":telegram:" in k and user_label:
             label = user_label.split(" (")[0] if " (" in user_label else user_label
+        elif kind == "subagent":
+            # Try to extract task from session transcript
+            sf = v.get("sessionFile", "")
+            if sf:
+                try:
+                    with open(sf) as tf:
+                        for tline in tf:
+                            tmsg = json.loads(tline)
+                            if tmsg.get("type") == "message" and tmsg.get("message", {}).get("role") == "user":
+                                txt = ""
+                                mc = tmsg["message"].get("content", [])
+                                if isinstance(mc, list):
+                                    for cc in mc:
+                                        if isinstance(cc, dict) and cc.get("type") == "text":
+                                            txt = cc["text"]
+                                            break
+                                elif isinstance(mc, str):
+                                    txt = mc
+                                # Extract after [Subagent Task]:
+                                if "[Subagent Task]:" in txt:
+                                    txt = txt.split("[Subagent Task]:")[1].strip()
+                                # Take first meaningful line
+                                for tl in txt.split("\n"):
+                                    tl = tl.strip()
+                                    if tl and not tl.startswith("[") and not tl.startswith("#"):
+                                        label = tl[:60]
+                                        break
+                                break
+                except:
+                    pass
+            if not label:
+                label = "Sub-agent " + k.split(":")[-1][:8]
         else:
             parts = k.split(":")
             label = parts[-1][:16] if len(parts) > 1 else k[:16]
