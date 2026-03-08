@@ -31,10 +31,10 @@ On headless servers, run `claude login` from a machine with a browser, then copy
 Add to system crontab (`crontab -e`):
 
 ```cron
-* * * * * /path/to/velboard/panels/claude-usage/scripts/claude-usage-poll.sh >> /tmp/claude-usage-poll.log 2>&1
+*/5 * * * * /path/to/velboard/panels/claude-usage/scripts/claude-usage-poll.sh >> /tmp/claude-usage-poll.log 2>&1
 ```
 
-This polls the Anthropic usage API every 60 seconds and writes results to `~/.openclaw/workspace/claude-usage.json`.
+This polls the Anthropic usage API every 5 minutes and writes results to `~/.openclaw/workspace/claude-usage.json`.
 
 ### 4. Configure Velboard data source
 
