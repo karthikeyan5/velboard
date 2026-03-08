@@ -18,7 +18,6 @@
   },
   "panelOrder": [
     "claude-usage",
-    "token-swap",
     "updates",
     "cpu",
     "memory",
