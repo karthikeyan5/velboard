@@ -2,6 +2,8 @@ import { html, useState } from '/core/vendor/preact-htm.js';
 
 export default function OpenclawStatusPanel({ data, error, connected, cls }) {
   const [secExpanded, setSecExpanded] = useState(false);
+  const [restarting, setRestarting] = useState(false);
+  const [restartResult, setRestartResult] = useState(null);
 
   if (error) return html`<div class=${cls('error')}>${error.error}</div>`;
 
@@ -108,12 +110,46 @@ export default function OpenclawStatusPanel({ data, error, connected, cls }) {
         <span style="font-size:10px;color:var(--text-dim)">
           ${data.channel?.name || 'telegram'} ${data.channel?.status === 'ON' ? html`<span style="color:var(--green)">✓</span>` : html`<span style="color:var(--red)">✗</span>`}
         </span>
-        ${data.memory && html`
-          <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace">
-            ${data.memory.replace(/\s*·\s*sources.+/, '').replace(/\s*·\s*plugin.+/, '').replace(/\s*·\s*cache.+/, '').replace(/\s*·\s*fts.+/, '')}
-          </span>
-        `}
+        <button
+          onClick=${async () => {
+            if (restarting) return;
+            if (!confirm('Restart the OpenClaw gateway?')) return;
+            setRestarting(true);
+            setRestartResult(null);
+            try {
+              const params = new URLSearchParams(window.location.search);
+              const token = params.get('token');
+              const sep = token ? '?token=' + encodeURIComponent(token) : '';
+              const r = await fetch('/api/gateway/restart' + sep, { method: 'POST' });
+              const d = await r.json();
+              setRestartResult(d);
+            } catch (e) {
+              setRestartResult({ ok: false, error: e.message });
+            } finally {
+              setRestarting(false);
+            }
+          }}
+          disabled=${restarting}
+          style="font-size:9px;padding:2px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.1);background:${restarting ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.03)'};color:var(--text-dim);cursor:${restarting ? 'wait' : 'pointer'};font-family:inherit;transition:all 0.15s"
+        >
+          ${restarting ? '⟳ Restarting…' : '⟳ Restart'}
+        </button>
       </div>
+
+      <!-- Restart result -->
+      ${restartResult && html`
+        <div style="margin-top:8px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid ${restartResult.ok ? 'rgba(76,175,80,0.3)' : 'rgba(255,82,82,0.3)'}">
+          <div style="font-size:10px;font-weight:600;color:${restartResult.ok ? 'var(--green)' : 'var(--red)'}">
+            ${restartResult.ok ? '✓ Gateway restarted' : '✗ Restart failed'}
+          </div>
+          ${restartResult.output && html`
+            <pre style="font-size:9px;color:var(--text-dim);margin-top:4px;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow-y:auto;font-family:'JetBrains Mono',monospace;line-height:1.4">${restartResult.output}</pre>
+          `}
+          ${restartResult.error && !restartResult.output && html`
+            <div style="font-size:9px;color:var(--text-dim);margin-top:4px">${restartResult.error}</div>
+          `}
+        </div>
+      `}
     </div>
   `;
 }
