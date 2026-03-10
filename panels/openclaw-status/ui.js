@@ -117,10 +117,7 @@ export default function OpenclawStatusPanel({ data, error, connected, cls }) {
             setRestarting(true);
             setRestartResult(null);
             try {
-              const params = new URLSearchParams(window.location.search);
-              const token = params.get('token');
-              const sep = token ? '?token=' + encodeURIComponent(token) : '';
-              const r = await fetch('/api/gateway/restart' + sep, { method: 'POST' });
+              const r = await fetch('/api/gateway/restart', { method: 'POST', credentials: 'same-origin' });
               const d = await r.json();
               setRestartResult(d);
             } catch (e) {
