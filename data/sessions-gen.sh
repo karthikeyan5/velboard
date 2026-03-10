@@ -34,6 +34,11 @@ for k, v in d.items():
     else:
         kind = "other"
 
+    # Skip individual cron run sessions (keep only the persistent cron session)
+    # Pattern: agent:main:cron:<job-id>:run:<hash> — skip these
+    if kind == "cron" and ":run:" in k:
+        continue
+
     by_kind[kind] = by_kind.get(kind, 0) + 1
 
     model = v.get("model", "unknown")
