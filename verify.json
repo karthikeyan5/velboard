@@ -1,0 +1,22 @@
+{
+  "checks": [
+    {
+      "type": "http_get",
+      "path": "/dashboard",
+      "expect_status": 200,
+      "hint": "Velboard /dashboard is not returning 200. Check that the core shell.html exists."
+    },
+    {
+      "type": "http_get",
+      "path": "/api/sources",
+      "expect_status": 200,
+      "hint": "Velboard /api/sources requires auth. Ensure token is configured in config.json."
+    },
+    {
+      "type": "file_exists",
+      "path": "data",
+      "relative_to": "app",
+      "hint": "velboard/data directory missing. Panel data files may not load."
+    }
+  ]
+}
