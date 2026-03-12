@@ -65,8 +65,16 @@ set_backoff() {
   echo "[claude-usage] $(date '+%H:%M:%S') Rate limited — backing off ${prev_duration}s" >&2
 }
 
-# Check backoff before doing anything
-check_backoff
+# Check for on-demand trigger (written by token-swap server)
+TRIGGER_FILE="${OPENCLAW_WORKSPACE:-$HOME/.openclaw/workspace}/.usage-poll-trigger"
+if [[ -f "$TRIGGER_FILE" ]]; then
+  rm -f "$TRIGGER_FILE"
+  echo "[claude-usage] $(date '+%H:%M:%S') On-demand trigger detected — running immediately" >&2
+  # Skip backoff check for triggered runs
+else
+  # Check backoff before doing anything (only for scheduled runs)
+  check_backoff
+fi
 
 # ---------------------------------------------------------------------------
 # Helpers
