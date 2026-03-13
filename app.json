@@ -1,33 +1,27 @@
 {
-  "name": "velboard",
+  "name": "velclawboard",
   "version": "1.0.0",
-  "title": "Velboard",
-  "description": "Real-time monitoring dashboard for OpenClaw agents",
+  "title": "VelClawBoard",
+  "description": "OpenClaw command center \u2014 usage tracking, session monitoring, model config, and updates",
   "panels": "panels",
   "data_sources": {
     "claude-usage": {
       "type": "file",
       "path": "~/.openclaw/workspace/claude-usage.json",
-      "interval": "10s"
+      "interval": "10s",
+      "producer": {
+        "script": "/home/claw/.openclaw/workspace/skills/claude-usage-monitor/scripts/claude-usage-poll.sh",
+        "cron": "*/5 * * * *"
+      }
     },
     "sessions": {
       "type": "file",
       "path": "~/.openclaw/workspace/sessions-summary.json",
-      "interval": "30s"
+      "interval": "30s",
+      "producer": {
+        "script": "data/sessions-gen.sh",
+        "cron": "* * * * *"
+      }
     }
-  },
-  "panelOrder": [
-    "claude-usage",
-    "updates",
-    "cpu",
-    "memory",
-    "disk",
-    "uptime",
-    "processes",
-    "openclaw-status",
-    "sessions",
-    "crons",
-    "models"
-  ],
-  "landingPage": "pages/landing"
+  }
 }

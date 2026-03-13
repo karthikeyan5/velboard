@@ -36,7 +36,7 @@ Add to system crontab (`crontab -e`):
 
 This polls the Anthropic usage API every 5 minutes and writes results to `~/.openclaw/workspace/claude-usage.json`.
 
-### 4. Configure Velboard data source
+### 4. Configure VelClawBoard data source
 
 In `velboard/app.json`, ensure this data source exists:
 
@@ -50,7 +50,7 @@ In `velboard/app.json`, ensure this data source exists:
 }
 ```
 
-This is already configured by default in Velboard.
+This is already configured by default in VelClawBoard.
 
 ## Output Format
 
